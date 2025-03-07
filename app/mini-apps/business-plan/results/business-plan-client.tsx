@@ -1,8 +1,8 @@
 'use client';
 
 import React, { Suspense } from 'react';
-import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
+import ResultsClient from './results-client';
 
 // Loading component
 function BusinessPlanLoading() {
@@ -21,13 +21,10 @@ function BusinessPlanLoading() {
   );
 }
 
-// Dynamically import the client component
-const ResultsClient = dynamic(() => import('./results-client'), {
-  ssr: false,
-  loading: () => <BusinessPlanLoading />
-});
-
-// Client Component Wrapper
-export default function ClientWrapper() {
-  return <ResultsClient />;
+export default function BusinessPlanClient() {
+  return (
+    <Suspense fallback={<BusinessPlanLoading />}>
+      <ResultsClient />
+    </Suspense>
+  );
 } 
