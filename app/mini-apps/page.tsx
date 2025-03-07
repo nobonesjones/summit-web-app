@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { miniAppsConfig } from '@/config/mini-apps/config';
-import Image from 'next/image';
+import FallbackImage from '@/components/ui/fallback-image';
 
 export default function MiniAppsPage() {
   return (
@@ -22,17 +22,13 @@ export default function MiniAppsPage() {
             <div className="p-6">
               <div className="flex items-center mb-4">
                 <div className="w-12 h-12 mr-4 relative flex-shrink-0">
-                  <Image 
+                  <FallbackImage 
                     src={app.icon || '/icons/default-app.svg'}
                     alt={app.title}
                     width={48}
                     height={48}
                     className="object-contain"
-                    onError={(e) => {
-                      // Fallback if image fails to load
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/icons/default-app.svg';
-                    }}
+                    fallbackSrc="/icons/default-app.svg"
                   />
                 </div>
                 <h3 className="text-xl font-semibold">{app.title}</h3>
