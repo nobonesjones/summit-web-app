@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Plus, ArrowRight } from "lucide-react";
+import { FileText, Plus, ArrowRight, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import {
   Table,
@@ -16,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "@/components/ui/use-toast";
 
 // Sample data for business plans
 const sampleBusinessPlans = [
@@ -49,6 +51,9 @@ export default function DashboardPage() {
   const { user, loading } = useAuth();
   const [greeting, setGreeting] = useState("Good day");
   const [businessPlans, setBusinessPlans] = useState(sampleBusinessPlans);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const searchParams = useSearchParams();
+  const success = searchParams.get('success');
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -56,6 +61,26 @@ export default function DashboardPage() {
     else if (hour < 18) setGreeting("Good afternoon");
     else setGreeting("Good evening");
   }, []);
+
+  useEffect(() => {
+    if (success === 'signup') {
+      setShowSuccessMessage(true);
+      
+      // Show toast notification
+      toast({
+        title: "Welcome to Summit!",
+        description: "Your account has been created successfully.",
+        variant: "default",
+      });
+      
+      // Hide the message after 5 seconds
+      const timer = setTimeout(() => {
+        setShowSuccessMessage(false);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
 
   // Function to get category badge color
   const getCategoryBadge = (category: string) => {
@@ -84,6 +109,16 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-8 p-4 md:p-8">
+      {showSuccessMessage && (
+        <div className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100 p-4 rounded-lg shadow-md flex items-center space-x-3 animate-in fade-in">
+          <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+          <div>
+            <h3 className="font-medium">Success!</h3>
+            <p className="text-sm">Your account has been created successfully.</p>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">
           {greeting}, {user?.email?.split("@")[0] || "there"}!
