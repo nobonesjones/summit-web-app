@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -47,7 +47,8 @@ const sampleBusinessPlans = [
   },
 ];
 
-export default function DashboardPage() {
+// Create a client component for the content that uses useSearchParams
+function DashboardContent() {
   const { user, loading } = useAuth();
   const [greeting, setGreeting] = useState("Good day");
   const [businessPlans, setBusinessPlans] = useState(sampleBusinessPlans);
@@ -183,5 +184,26 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// Loading component for Suspense fallback
+function DashboardLoading() {
+  return (
+    <div className="flex h-[80vh] items-center justify-center">
+      <div className="text-center">
+        <h2 className="text-2xl font-semibold">Loading dashboard...</h2>
+        <p className="text-muted-foreground">Please wait while we prepare your dashboard</p>
+      </div>
+    </div>
+  );
+}
+
+// Main dashboard page component with Suspense boundary
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<DashboardLoading />}>
+      <DashboardContent />
+    </Suspense>
   );
 } 
