@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Download, Edit, ArrowLeft, Plus, RefreshCw, Save } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { determineBusinessCategory } from '@/lib/ai/businessPlanUtils';
-import { useBusinessPlanService } from '@/lib/services/businessPlanService';
+import { useBusinessPlanService, saveBusinessPlan } from '@/lib/services/businessPlanService';
 import { BusinessPlan, BusinessPlanSection } from '@/types/businessPlan';
 import { toast } from '@/components/ui/use-toast';
 
@@ -208,8 +208,15 @@ export default function ResultsClient() {
     try {
       setIsSaving(true);
       
-      // Save the business plan to the user's dashboard
-      await businessPlanService.saveBusinessPlan(businessPlan);
+      // Try to use the hook first, fall back to the standalone function
+      try {
+        // Save the business plan to the user's dashboard using Convex
+        await businessPlanService.saveBusinessPlan(businessPlan);
+      } catch (convexError) {
+        console.warn('Failed to save with Convex, falling back to local storage:', convexError);
+        // Fall back to local storage if Convex fails
+        await saveBusinessPlan(businessPlan);
+      }
       
       // Mark as saved
       setIsSaved(true);

@@ -6,12 +6,49 @@
 
 import { v } from 'convex/values';
 import { api } from '@/convex/_generated/api';
-import { useConvex } from 'convex/react';
+import { useConvex, useMutation } from 'convex/react';
 import { BusinessPlan } from '@/types/businessPlan';
 import { useCallback } from 'react';
 
 // Local storage key for business plans
 const BUSINESS_PLANS_STORAGE_KEY = 'summit_business_plans';
+
+/**
+ * Standalone function to save a business plan to local storage
+ * This is a fallback for when Convex is not available
+ */
+export async function saveBusinessPlan(businessPlan: BusinessPlan): Promise<BusinessPlan> {
+  try {
+    // In a real implementation, this would save to a database
+    // For now, we'll use local storage as a simple solution
+    
+    // Generate a unique ID for the business plan
+    const id = `plan-${Date.now()}`;
+    
+    // Add metadata to the business plan
+    const planWithMetadata: BusinessPlan = {
+      ...businessPlan,
+      id,
+      createdAt: new Date().toISOString(),
+    };
+    
+    // Get existing business plans from local storage
+    const existingPlans = getBusinessPlansFromStorage();
+    
+    // Add the new business plan to the list
+    const updatedPlans = [planWithMetadata, ...existingPlans];
+    
+    // Save the updated list to local storage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(BUSINESS_PLANS_STORAGE_KEY, JSON.stringify(updatedPlans));
+    }
+    
+    return planWithMetadata;
+  } catch (error) {
+    console.error('Error saving business plan:', error);
+    throw error;
+  }
+}
 
 /**
  * Custom hook for business plan operations
