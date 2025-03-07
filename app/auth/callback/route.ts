@@ -5,6 +5,11 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
+  const referrer = request.headers.get('referer') || ''
+  
+  // Determine if this is a sign-up or sign-in based on the referrer URL
+  const isSignUp = referrer.includes('/sign-up')
+  const successParam = isSignUp ? 'signup' : 'signin'
   
   if (code) {
     try {
@@ -19,8 +24,8 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(new URL(`/sign-in?error=${encodeURIComponent(error.message)}`, requestUrl.origin))
       }
       
-      // Redirect to dashboard with success message
-      return NextResponse.redirect(new URL('/dashboard?success=signup', requestUrl.origin))
+      // Redirect to dashboard with appropriate success message
+      return NextResponse.redirect(new URL(`/dashboard?success=${successParam}`, requestUrl.origin))
     } catch (err) {
       console.error('Exception in auth callback:', err)
       // Redirect to sign-in page with generic error

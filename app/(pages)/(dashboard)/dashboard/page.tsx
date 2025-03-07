@@ -53,6 +53,7 @@ function DashboardContent() {
   const [greeting, setGreeting] = useState("Good day");
   const [businessPlans, setBusinessPlans] = useState(sampleBusinessPlans);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [successType, setSuccessType] = useState('');
   const searchParams = useSearchParams();
   const success = searchParams.get('success');
 
@@ -64,15 +65,24 @@ function DashboardContent() {
   }, []);
 
   useEffect(() => {
-    if (success === 'signup') {
+    if (success === 'signup' || success === 'signin') {
       setShowSuccessMessage(true);
+      setSuccessType(success);
       
       // Show toast notification
-      toast({
-        title: "Welcome to Summit!",
-        description: "Your account has been created successfully.",
-        variant: "default",
-      });
+      if (success === 'signup') {
+        toast({
+          title: "Welcome to Summit!",
+          description: "Your account has been created successfully.",
+          variant: "default",
+        });
+      } else if (success === 'signin') {
+        toast({
+          title: "Welcome back!",
+          description: "You have successfully signed in.",
+          variant: "default",
+        });
+      }
       
       // Hide the message after 5 seconds
       const timer = setTimeout(() => {
@@ -115,7 +125,11 @@ function DashboardContent() {
           <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
           <div>
             <h3 className="font-medium">Success!</h3>
-            <p className="text-sm">Your account has been created successfully.</p>
+            <p className="text-sm">
+              {successType === 'signup' 
+                ? "Your account has been created successfully." 
+                : "You have successfully signed in."}
+            </p>
           </div>
         </div>
       )}
