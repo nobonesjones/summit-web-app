@@ -28,6 +28,20 @@ export default function SignUpPage() {
         checkUser()
     }, [router, searchParams])
     
+    // Handle auth state change to redirect immediately after successful sign-up
+    useEffect(() => {
+        const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' && session) {
+                // User has signed up and is now signed in, redirect to dashboard
+                router.push('/dashboard')
+            }
+        })
+        
+        return () => {
+            authListener.subscription.unsubscribe()
+        }
+    }, [router])
+    
     if (!isClient) return null
     
     return (

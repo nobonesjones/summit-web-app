@@ -28,6 +28,20 @@ export default function SignInPage() {
         checkUser()
     }, [router, searchParams])
     
+    // Handle auth state change to redirect immediately after successful sign-in
+    useEffect(() => {
+        const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' && session) {
+                // User has signed in, redirect to dashboard
+                router.push('/dashboard')
+            }
+        })
+        
+        return () => {
+            authListener.subscription.unsubscribe()
+        }
+    }, [router])
+    
     if (!isClient) return null
     
     return (
