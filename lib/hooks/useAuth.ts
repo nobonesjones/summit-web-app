@@ -42,10 +42,25 @@ export function useAuth() {
 
   const signOut = async () => {
     try {
-      await fetch('/api/auth/sign-out', {
+      // First, sign out on the client side to clear local storage
+      await supabase.auth.signOut()
+      
+      // Then call the API route to handle server-side sign out
+      const response = await fetch('/api/auth/sign-out', {
         method: 'POST',
       })
-      router.push('/')
+      
+      if (response.ok) {
+        // Clear local state
+        setUser(null)
+        setSession(null)
+        
+        // Navigate to home page
+        router.push('/')
+        router.refresh()
+      } else {
+        console.error('Error signing out:', response.statusText)
+      }
     } catch (error) {
       console.error('Error signing out:', error)
     }
