@@ -11,8 +11,8 @@ export default function Home() {
       <div className="flex flex-col justify-center items-center w-full mt-[1rem] p-3">
         <HeroSection />
       </div>
-      <SideBySide />
       <MarketingCards />
+      <SideBySide />
       <Pricing />
       <AccordionComponent />
     </PageWrapper>

@@ -1,31 +1,35 @@
 "use client"
-import { api } from '@/convex/_generated/api';
-import { useAuth } from '@clerk/nextjs';
-import { useMutation, useQuery } from 'convex/react';
-import { useEffect } from 'react';
+
+import { useAuth } from '@/lib/hooks/useAuth';
+import { usePathname } from 'next/navigation';
+import { ReactNode } from 'react';
+import Navbar from './navbar';
 import Footer from './footer';
-import NavBar from './navbar';
 
-export default function PageWrapper({ children }: { children: React.ReactNode }) {
+interface PageWrapperProps {
+  children: ReactNode;
+  showNavbar?: boolean;
+  showFooter?: boolean;
+}
+
+export default function PageWrapper({
+  children,
+  showNavbar = true,
+  showFooter = true,
+}: PageWrapperProps) {
   const { isSignedIn } = useAuth();
-  const user = useQuery(api.users.getUser);
-  const storeUser = useMutation(api.users.store);
-
-  useEffect(() => {
-    if (user && isSignedIn) {
-      storeUser();
-    }
-  }, [user, isSignedIn, storeUser]);
-
+  const pathname = usePathname();
+  
+  // Determine if we're on a marketing page
+  const isMarketingPage = !pathname.includes('/dashboard') && 
+                          !pathname.includes('/sign-in') && 
+                          !pathname.includes('/sign-up');
 
   return (
-    <>
-      <NavBar />
-      <main className="flex min-w-screen min-h-screen flex-col pt-[4rem] items-center dark:bg-black bg-white justify-between">
-        <div className="absolute z-[-99] pointer-events-none inset-0 flex items-center justify-center [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]"></div>
-        {children}
-      </main>
-      <Footer />
-    </>
-  )
+    <div className="flex min-h-screen flex-col">
+      {showNavbar && <Navbar />}
+      <main className="flex-1">{children}</main>
+      {showFooter && isMarketingPage && <Footer />}
+    </div>
+  );
 }

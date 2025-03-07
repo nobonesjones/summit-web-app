@@ -1,5 +1,5 @@
 "use client"
-import { ArrowRight, Github, Sparkles, Twitter } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { Button } from '../ui/button';
@@ -21,15 +21,13 @@ export default function Footer() {
 
     const links = {
         product: [
-            { name: 'Features', href: '/features' },
-            { name: 'Documentation', href: '/docs' },
-            { name: 'Examples', href: '/examples' },
+            { name: 'Mini-Apps', href: '/mini-apps' },
+            { name: 'Dashboard', href: '/dashboard' },
             { name: 'Pricing', href: '/pricing' },
         ],
         company: [
             { name: 'About', href: '/about' },
             { name: 'Blog', href: '/blog' },
-            { name: 'Careers', href: '/careers' },
             { name: 'Contact', href: '/contact' },
         ],
         legal: [
@@ -46,25 +44,12 @@ export default function Footer() {
                     {/* Brand */}
                     <div className="space-y-8">
                         <Link href="/" className="flex items-center gap-2">
-                            <Sparkles className="h-5 w-5 text-blue-600" />
-                            <span className="font-semibold">Next Starter</span>
+                            <Sparkles className="h-5 w-5 text-purple-600" />
+                            <span className="font-semibold">Summit</span>
                         </Link>
                         <p className="text-sm text-gray-600 dark:text-gray-400 max-w-sm">
-                            Launch your SaaS in minutes with our production-ready Next.js starter kit.
-                            Everything you need, from auth to payments.
+                            Helping founders build successful startups with AI-powered mini-apps. Generate business plans, marketing strategies, and more in minutes.
                         </p>
-                        <div className="flex space-x-4">
-                            <Link href="https://github.com/michaelshimeles/nextjs14-starter-template" target="_blank">
-                                <Button variant="ghost" size="icon">
-                                    <Github className="h-5 w-5" />
-                                </Button>
-                            </Link>
-                            <Link href="https://twitter.com" target="_blank">
-                                <Button variant="ghost" size="icon">
-                                    <Twitter className="h-5 w-5" />
-                                </Button>
-                            </Link>
-                        </div>
                     </div>
 
                     {/* Links */}
@@ -110,7 +95,7 @@ export default function Footer() {
                                     />
                                 </div>
                                 <div className="mt-3 sm:ml-3 sm:mt-0">
-                                    <Button type="submit" className="w-full rounded-full bg-blue-600 hover:bg-blue-500 text-white">
+                                    <Button type="submit" className="w-full rounded-full bg-purple-600 hover:bg-purple-500 text-white">
                                         Subscribe
                                         <ArrowRight className="ml-2 h-4 w-4" />
                                     </Button>
@@ -133,7 +118,7 @@ export default function Footer() {
                 </div>
                 <div className="mt-12 border-t border-gray-200 dark:border-gray-800 pt-8">
                     <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                        &copy; {new Date().getFullYear()} Next Starter. All rights reserved.
+                        &copy; {new Date().getFullYear()} Summit. All rights reserved.
                     </p>
                 </div>
             </div>

@@ -1,0 +1,2 @@
+This will be used to track current progress on the app. 
+We have completed the business plan flow. now i need to work on the actuall business plan structure and layour and also includ esome research from perplexity. 

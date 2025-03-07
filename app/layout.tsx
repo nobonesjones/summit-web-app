@@ -1,39 +1,33 @@
-import Provider from "@/app/provider";
+import "@/app/globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/sonner";
-import { ClerkProvider } from "@clerk/nextjs";
+import { Providers } from "./provider";
+import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { GeistSans } from "geist/font/sans";
-import type { Metadata } from "next";
-import "./globals.css";
+import { GeistMono } from "geist/font/mono";
+import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://nextstarter.xyz/"),
-  title: {
-    default: 'Next Starter',
-    template: `%s | Next Starter`
-  },
+  title: "Summit - AI-Powered Business Planning Tools",
   description:
-    "The Ultimate Nextjs 15 Starter Kit for quickly building your SaaS, giving you time to focus on what really matters",
+    "Generate comprehensive business plans, growth strategies, and more in minutes with Summit's AI-powered mini-apps.",
+  metadataBase: new URL("https://summit.ai"),
   openGraph: {
+    title: "Summit - AI-Powered Business Planning Tools",
     description:
-      "The Ultimate Nextjs 15 Starter Kit for quickly building your SaaS, giving you time to focus on what really matters",
-    images: [
-      "https://dwdwn8b5ye.ufs.sh/f/MD2AM9SEY8GucGJl7b5qyE7FjNDKYduLOG2QHWh3f5RgSi0c",
-    ],
-    url: "https://nextstarter.xyz/",
+      "Generate comprehensive business plans, growth strategies, and more in minutes with Summit's AI-powered mini-apps.",
+    url: "https://summit.ai",
+    siteName: "Summit",
+    locale: "en_US",
+    type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Nextjs Starter Kit",
+    title: "Summit - AI-Powered Business Planning Tools",
     description:
-      "The Ultimate Nextjs 15 Starter Kit for quickly building your SaaS, giving you time to focus on what really matters",
-    siteId: "",
-    creator: "@rasmickyy",
-    creatorId: "",
-    images: [
-      "https://dwdwn8b5ye.ufs.sh/f/MD2AM9SEY8GucGJl7b5qyE7FjNDKYduLOG2QHWh3f5RgSi0c",
-    ],
+      "Generate comprehensive business plans, growth strategies, and more in minutes with Summit's AI-powered mini-apps.",
+    card: "summary_large_image",
+    creator: "@summit",
   },
 };
 
@@ -43,23 +37,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider dynamic>
-      <html lang="en" suppressHydrationWarning>
-        <body className={GeistSans.className}>
-          <Provider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="dark"
-              enableSystem
-              disableTransitionOnChange
-            >
-              {children}
-              <Toaster />
-            </ThemeProvider>
-          </Provider>
-          <Analytics />
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}
+      >
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <Providers>
+            {children}
+            <Toaster position="top-center" />
+            <Analytics />
+            <SpeedInsights />
+          </Providers>
+        </ThemeProvider>
+      </body>
+    </html>
   );
 }
