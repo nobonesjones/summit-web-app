@@ -115,3 +115,9 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Convex](https://www.convex.dev/)
 - [OpenAI](https://openai.com/)
 - [Perplexity](https://www.perplexity.ai/)
+
+## Recent Updates
+
+- Fixed Suspense boundary implementation for useSearchParams in the business plan results page
+- Added Convex schema and functions for business plan storage
+- Implemented client-side component with proper hooks usage
