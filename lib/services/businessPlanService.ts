@@ -4,9 +4,7 @@
  * This file contains functions for storing and retrieving business plans.
  */
 
-import { v } from 'convex/values';
-import { api } from '@/convex/_generated/api';
-import { useConvex, useMutation } from 'convex/react';
+import { useConvex } from 'convex/react';
 import { BusinessPlan } from '@/types/businessPlan';
 import { useCallback } from 'react';
 
@@ -63,35 +61,27 @@ export function useBusinessPlanService() {
    */
   const saveBusinessPlan = useCallback(async (businessPlan: BusinessPlan): Promise<string> => {
     try {
-      // Save the business plan to the database
-      const id = await convex.mutation(api.businessPlans.create, {
-        title: businessPlan.title,
-        businessIdea: businessPlan.businessIdea,
-        location: businessPlan.location,
-        category: businessPlan.category,
-        sections: businessPlan.sections,
-        createdAt: new Date().toISOString(),
-      });
-      
-      console.log('Business plan saved with ID:', id);
-      return id;
+      // For now, we'll use local storage as Convex integration is pending
+      const savedPlan = await saveBusinessPlanToLocalStorage(businessPlan);
+      return savedPlan.id || '';
     } catch (error) {
       console.error('Error saving business plan:', error);
       throw new Error('Failed to save business plan');
     }
-  }, [convex]);
+  }, []);
 
   /**
    * Gets all business plans for the current user
    */
   const getBusinessPlans = useCallback(async () => {
     try {
-      return await convex.query(api.businessPlans.getPlans);
+      // For now, we'll use local storage as Convex integration is pending
+      return getBusinessPlansFromStorage();
     } catch (error) {
       console.error('Error getting business plans:', error);
-      throw new Error('Failed to get business plans');
+      return [];
     }
-  }, [convex]);
+  }, []);
 
   /**
    * Gets a specific business plan by ID
@@ -99,12 +89,13 @@ export function useBusinessPlanService() {
    */
   const getBusinessPlanById = useCallback(async (id: string) => {
     try {
-      return await convex.query(api.businessPlans.getPlanById, { id });
+      // For now, we'll use local storage as Convex integration is pending
+      return getBusinessPlanByIdFromStorage(id);
     } catch (error) {
       console.error('Error getting business plan:', error);
-      throw new Error('Failed to get business plan');
+      return null;
     }
-  }, [convex]);
+  }, []);
 
   /**
    * Deletes a business plan
@@ -112,12 +103,13 @@ export function useBusinessPlanService() {
    */
   const deleteBusinessPlan = useCallback(async (id: string) => {
     try {
-      return await convex.mutation(api.businessPlans.deletePlan, { id });
+      // For now, we'll use local storage as Convex integration is pending
+      return deleteBusinessPlanFromStorage(id);
     } catch (error) {
       console.error('Error deleting business plan:', error);
-      throw new Error('Failed to delete business plan');
+      return false;
     }
-  }, [convex]);
+  }, []);
 
   return {
     saveBusinessPlan,
@@ -128,40 +120,50 @@ export function useBusinessPlanService() {
 }
 
 /**
- * Get all business plans from local storage
+ * Helper function to save a business plan to local storage
  */
-export function getBusinessPlans(): BusinessPlan[] {
-  try {
-    // In a real implementation, this would fetch from a database
-    return getBusinessPlansFromStorage();
-  } catch (error) {
-    console.error('Error getting business plans:', error);
-    return [];
+async function saveBusinessPlanToLocalStorage(businessPlan: BusinessPlan): Promise<BusinessPlan> {
+  // Generate a unique ID for the business plan
+  const id = `plan-${Date.now()}`;
+  
+  // Add metadata to the business plan
+  const planWithMetadata: BusinessPlan = {
+    ...businessPlan,
+    id,
+    createdAt: new Date().toISOString(),
+  };
+  
+  // Get existing business plans from local storage
+  const existingPlans = getBusinessPlansFromStorage();
+  
+  // Add the new business plan to the list
+  const updatedPlans = [planWithMetadata, ...existingPlans];
+  
+  // Save the updated list to local storage
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(BUSINESS_PLANS_STORAGE_KEY, JSON.stringify(updatedPlans));
   }
+  
+  return planWithMetadata;
 }
 
 /**
- * Get a business plan by ID
+ * Helper function to get a business plan by ID from local storage
  */
-export function getBusinessPlanById(id: string): BusinessPlan | null {
-  try {
-    // Get all business plans
-    const businessPlans = getBusinessPlansFromStorage();
-    
-    // Find the business plan with the matching ID
-    const businessPlan = businessPlans.find(plan => plan.id === id);
-    
-    return businessPlan || null;
-  } catch (error) {
-    console.error('Error getting business plan by ID:', error);
-    return null;
-  }
+function getBusinessPlanByIdFromStorage(id: string): BusinessPlan | null {
+  // Get all business plans
+  const businessPlans = getBusinessPlansFromStorage();
+  
+  // Find the business plan with the matching ID
+  const businessPlan = businessPlans.find(plan => plan.id === id);
+  
+  return businessPlan || null;
 }
 
 /**
- * Delete a business plan by ID
+ * Helper function to delete a business plan from local storage
  */
-export function deleteBusinessPlan(id: string): boolean {
+function deleteBusinessPlanFromStorage(id: string): boolean {
   try {
     // Get all business plans
     const businessPlans = getBusinessPlansFromStorage();
@@ -170,11 +172,13 @@ export function deleteBusinessPlan(id: string): boolean {
     const updatedPlans = businessPlans.filter(plan => plan.id !== id);
     
     // Save the updated list to local storage
-    localStorage.setItem(BUSINESS_PLANS_STORAGE_KEY, JSON.stringify(updatedPlans));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(BUSINESS_PLANS_STORAGE_KEY, JSON.stringify(updatedPlans));
+    }
     
     return true;
   } catch (error) {
-    console.error('Error deleting business plan:', error);
+    console.error('Error deleting business plan from local storage:', error);
     return false;
   }
 }
