@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,25 @@ import { saveBusinessPlan } from '@/lib/services/businessPlanService';
 import { BusinessPlan, BusinessPlanSection } from '@/types/businessPlan';
 import { toast } from '@/components/ui/use-toast';
 
-export default function BusinessPlanResults() {
+// Loading component
+function BusinessPlanLoading() {
+  return (
+    <div className="container mx-auto px-4 py-12">
+      <div className="flex flex-col items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-12 w-12 animate-spin text-purple-600 mb-4" />
+        <h2 className="text-2xl font-bold text-center text-foreground">
+          Preparing Your Business Plan
+        </h2>
+        <p className="text-foreground/70 text-center mt-2">
+          Please wait while we prepare your business plan...
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Content component that uses useSearchParams
+function BusinessPlanResultsContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isResearching, setIsResearching] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -136,7 +154,7 @@ export default function BusinessPlanResults() {
     if (!loading && isSignedIn) {
       performResearchAndGenerate();
     }
-  }, [loading, isSignedIn, router, searchParams]);
+  }, [loading, isSignedIn, router, searchParams, getFormDataFromParams]);
 
   const handleRetry = async () => {
     // Get form data from URL params
@@ -442,5 +460,14 @@ export default function BusinessPlanResults() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main component with Suspense
+export default function BusinessPlanResults() {
+  return (
+    <Suspense fallback={<BusinessPlanLoading />}>
+      <BusinessPlanResultsContent />
+    </Suspense>
   );
 } 
