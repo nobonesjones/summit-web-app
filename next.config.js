@@ -40,6 +40,17 @@ const nextConfig = {
     reactCompiler: true,
   },
   pageExtensions: ["ts", "tsx", "mdx"],
+  webpack: (config, { isServer }) => {
+    // Externalize problematic packages
+    if (!isServer) {
+      config.externals = [...(config.externals || []), 
+        'leaflet', 
+        'react-leaflet', 
+        '@react-leaflet/core'
+      ];
+    }
+    return config;
+  },
 };
 
 const withMDX = createMDX({});
