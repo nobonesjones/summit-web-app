@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import leaflet CSS */
+@import 'leaflet/dist/leaflet.css';
 
 @layer base {
   :root {
