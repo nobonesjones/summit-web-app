@@ -10,7 +10,9 @@ export interface BusinessPlanSection {
 export interface BusinessPlan {
   id?: string;
   title: string;
-  category: 'New Company' | 'Scale-Up' | 'Established';
+  businessIdea: string;
+  location: string;
+  category: string;
   sections: BusinessPlanSection[];
   createdAt?: string;
 } 

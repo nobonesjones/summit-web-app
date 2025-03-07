@@ -206,4 +206,22 @@ export default defineSchema({
     })
     .index("type", ["type"])
     .index("polarEventId", ["polarEventId"]),
+
+    // Define the schema for the businessPlans table
+    businessPlans: defineTable({
+        userId: v.string(),
+        title: v.string(),
+        businessIdea: v.string(),
+        location: v.string(),
+        category: v.string(),
+        sections: v.array(
+            v.object({
+                title: v.string(),
+                content: v.string(),
+            })
+        ),
+        createdAt: v.string(),
+    })
+    .index("by_user", ["userId"])
+    .index("by_creation_date", ["createdAt"]),
 })
