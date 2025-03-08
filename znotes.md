@@ -1,2 +1,2 @@
 This will be used to track current progress on the app. 
-We have completed the business plan flow. now i need to work on the actuall business plan structure and layour and also includ esome research from perplexity. 
+WOk seems there is an issue since deploying. problems with signing in and signing out...but might have made the sign freeze on dev environment. trouble shooting time. 

@@ -1,6 +1,6 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import type { Database } from '@/types/supabase';
 
 export async function POST(request: Request) {
@@ -8,7 +8,23 @@ export async function POST(request: Request) {
   const formData = await request.formData();
   const email = String(formData.get('email'));
   const password = String(formData.get('password'));
-  const supabase = createRouteHandlerClient<Database>({ cookies });
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookies().get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          cookies().set(name, value, options);
+        },
+        remove(name: string, options: any) {
+          cookies().set(name, '', { ...options, maxAge: 0 });
+        },
+      },
+    }
+  );
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
@@ -32,15 +48,34 @@ export async function POST(request: Request) {
   );
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
-  const redirectTo = requestUrl.searchParams.get('redirectTo') || '/dashboard';
-
+  
   if (code) {
-    const supabase = createRouteHandlerClient<Database>({ cookies });
+    const cookieStore = cookies();
+    
+    const supabase = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: any) {
+            cookieStore.set(name, value, options);
+          },
+          remove(name: string, options: any) {
+            cookieStore.set(name, '', { ...options, maxAge: 0 });
+          },
+        },
+      }
+    );
+    
     await supabase.auth.exchangeCodeForSession(code);
   }
-
-  return NextResponse.redirect(`${requestUrl.origin}${redirectTo}`);
+  
+  // URL to redirect to after sign in process completes
+  return NextResponse.redirect(requestUrl.origin);
 } 

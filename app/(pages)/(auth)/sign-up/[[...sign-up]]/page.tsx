@@ -6,41 +6,76 @@ import { Auth } from "@supabase/auth-ui-react"
 import { ThemeSupa } from "@supabase/auth-ui-shared"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
+import { toast } from "@/components/ui/use-toast"
 
 export default function SignUpPage() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const [isClient, setIsClient] = useState(false)
+    const [isRedirecting, setIsRedirecting] = useState(false)
+    
+    // Centralized function to handle redirects after authentication
+    const redirectAfterAuth = (redirectPath?: string) => {
+        // Prevent multiple redirects
+        if (isRedirecting) return
+        setIsRedirecting(true)
+        
+        // Get the redirect path from URL params or use dashboard as default
+        const finalPath = redirectPath || searchParams.get("redirectTo") || "/dashboard"
+        
+        console.log(`Redirecting to: ${finalPath}`)
+        
+        // Use direct browser navigation for more immediate effect
+        window.location.href = finalPath
+    }
     
     useEffect(() => {
         setIsClient(true)
         
         // Check if user is already signed in
         const checkUser = async () => {
-            const { data } = await supabase.auth.getSession()
-            if (data.session) {
-                // User is signed in, redirect to the intended page or dashboard
-                const redirectTo = searchParams.get("redirectTo") || "/dashboard"
-                router.push(redirectTo)
+            try {
+                const { data, error } = await supabase.auth.getSession()
+                
+                if (error) {
+                    console.error('Error checking session:', error)
+                    return
+                }
+                
+                if (data.session) {
+                    console.log('User already signed in, redirecting to dashboard')
+                    // User is signed in, redirect to the intended page or dashboard
+                    redirectAfterAuth()
+                }
+            } catch (err) {
+                console.error('Exception checking user session:', err)
             }
         }
         
         checkUser()
-    }, [router, searchParams])
+    }, [searchParams])
     
     // Handle auth state change to redirect immediately after successful sign-up
     useEffect(() => {
         const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+            console.log(`Auth state changed: ${event}`)
+            
             if (event === 'SIGNED_IN' && session) {
-                // User has signed up and is now signed in, redirect to dashboard
-                router.push('/dashboard')
+                // User has signed up and is now signed in, redirect to dashboard immediately
+                toast({
+                    title: "Account created successfully",
+                    description: "Redirecting to dashboard...",
+                })
+                
+                // Use the centralized redirect function with success parameter
+                redirectAfterAuth("/dashboard?success=signup")
             }
         })
         
         return () => {
             authListener.subscription.unsubscribe()
         }
-    }, [router])
+    }, [])
     
     if (!isClient) return null
     
@@ -81,13 +116,16 @@ export default function SignUpPage() {
                                 },
                                 anchor: {
                                     color: 'white',
+                                },
+                                button: {
+                                    fontWeight: 'bold',
                                 }
                             }
                         }}
                         providers={["google", "github"]}
                         magicLink={true}
                         view="sign_up"
-                        redirectTo={`${window.location.origin}/auth/callback`}
+                        redirectTo={`${window.location.origin}/dashboard?success=signup`}
                     />
                 </div>
             </div>

@@ -1,50 +1,41 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import type { Database } from '@/types/supabase';
 
 export async function POST(request: Request) {
-  const requestUrl = new URL(request.url);
-  const formData = await request.formData();
-  const email = String(formData.get('email'));
-  const password = String(formData.get('password'));
-  const fullName = String(formData.get('full_name') || '');
-  const supabase = createRouteHandlerClient<Database>({ cookies });
+  const { email, password } = await request.json();
+  const cookieStore = cookies();
+  
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          cookieStore.set(name, value, options);
+        },
+        remove(name: string, options: any) {
+          cookieStore.set(name, '', { ...options, maxAge: 0 });
+        },
+      },
+    }
+  );
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${requestUrl.origin}/auth/callback`,
-      data: {
-        full_name: fullName,
-      },
+      emailRedirectTo: `${request.headers.get('origin')}/auth/callback`,
     },
   });
 
   if (error) {
-    return NextResponse.redirect(
-      `${requestUrl.origin}/sign-up?error=${error.message}`,
-      {
-        status: 301,
-      }
-    );
+    return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  // If email confirmation is required
-  if (data.user?.identities?.length === 0) {
-    return NextResponse.redirect(
-      `${requestUrl.origin}/sign-up/verification?email=${email}`,
-      {
-        status: 301,
-      }
-    );
-  }
-
-  return NextResponse.redirect(
-    `${requestUrl.origin}${process.env.NEXT_PUBLIC_AFTER_SIGN_UP_URL || '/dashboard'}`,
-    {
-      status: 301,
-    }
-  );
+  return NextResponse.json({ data });
 } 

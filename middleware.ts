@@ -1,6 +1,7 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { cookies } from 'next/headers'
 
 // Define protected routes that require authentication
 const protectedRoutes = [
@@ -18,20 +19,62 @@ const authRoutes = [
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   
-  // Create supabase middleware client
-  const supabase = createMiddlewareClient({ req, res })
+  // Create supabase server client
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return req.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: any) {
+          req.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+          res.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+        },
+        remove(name: string, options: any) {
+          req.cookies.set({
+            name,
+            value: '',
+            ...options,
+            maxAge: 0,
+          })
+          res.cookies.set({
+            name,
+            value: '',
+            ...options,
+            maxAge: 0,
+          })
+        },
+      },
+    }
+  )
   
   // Check if the user is authenticated
   const { data: { session } } = await supabase.auth.getSession()
   const path = req.nextUrl.pathname
   
+  // Add debugging to console (visible in server logs)
+  console.log(`Middleware - Path: ${path}, Session exists: ${!!session}`)
+  
   // If user is authenticated and trying to access auth routes, redirect to dashboard
   if (session && authRoutes.some(route => path.startsWith(route))) {
+    console.log('Authenticated user accessing auth route - redirecting to dashboard')
+    // Use a direct URL without any query parameters to avoid circular redirects
     return NextResponse.redirect(new URL('/dashboard', req.url))
   }
   
   // Handle protected routes
   if (protectedRoutes.some(route => path.startsWith(route)) && !session) {
+    console.log('Unauthenticated user accessing protected route - redirecting to sign-in')
     const redirectUrl = new URL('/sign-in', req.url)
     redirectUrl.searchParams.set('redirectTo', path)
     return NextResponse.redirect(redirectUrl)
@@ -40,7 +83,7 @@ export async function middleware(req: NextRequest) {
   // For dashboard access, check subscription status (if needed)
   if (path.startsWith('/dashboard') && session) {
     // You can add subscription verification logic here if needed
-    // For example, checking if the user has an active subscription
+    console.log('Authenticated user accessing dashboard - proceeding')
   }
   
   return res
