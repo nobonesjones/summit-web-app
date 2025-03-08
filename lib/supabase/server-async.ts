@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from '@/types/supabase';
 
-export async function createRouteHandlerSupabaseClient() {
+export async function createServerSupabaseClient() {
   const cookieStore = await cookies();
   
   return createServerClient<Database>(
@@ -22,4 +22,4 @@ export async function createRouteHandlerSupabaseClient() {
       },
     }
   );
-}; 
+} 
