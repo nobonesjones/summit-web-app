@@ -99,7 +99,6 @@ export default function SignUpPage() {
                                     colors: {
                                         brand: '#2563eb',
                                         brandAccent: '#1d4ed8',
-                                        inputText: 'white',
                                     },
                                     radii: {
                                         borderRadiusButton: '0.5rem',
@@ -108,21 +107,12 @@ export default function SignUpPage() {
                                 }
                             },
                             style: {
-                                input: {
-                                    color: 'white',
-                                },
-                                label: {
-                                    color: 'white',
-                                },
-                                anchor: {
-                                    color: 'white',
-                                },
                                 button: {
                                     fontWeight: 'bold',
                                 }
                             }
                         }}
-                        providers={["google", "github"]}
+                        providers={["google"]}
                         magicLink={true}
                         view="sign_up"
                         redirectTo={`${window.location.origin}/dashboard?success=signup`}

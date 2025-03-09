@@ -106,7 +106,6 @@ export default function SignInPage() {
                                     colors: {
                                         brand: '#2563eb',
                                         brandAccent: '#1d4ed8',
-                                        inputText: 'white',
                                     },
                                     radii: {
                                         borderRadiusButton: '0.5rem',
@@ -115,21 +114,12 @@ export default function SignInPage() {
                                 }
                             },
                             style: {
-                                input: {
-                                    color: 'white',
-                                },
-                                label: {
-                                    color: 'white',
-                                },
-                                anchor: {
-                                    color: 'white',
-                                },
                                 button: {
                                     fontWeight: 'bold',
                                 }
                             }
                         }}
-                        providers={["google", "github"]}
+                        providers={["google"]}
                         magicLink={true}
                         redirectTo={`${window.location.origin}/dashboard`}
                     />
