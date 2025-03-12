@@ -7,6 +7,9 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Summit",
   description: "Your business planning companion",
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
