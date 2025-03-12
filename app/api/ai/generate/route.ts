@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   try {
     // Parse the request body
     const body = await req.json();
-    const { prompt, max_tokens = 1000, model = 'gpt-4-turbo' } = body;
+    const { prompt, max_tokens = 1000, model = 'gpt-4o-mini' } = body;
 
     // Validate the request
     if (!prompt) {

@@ -24,8 +24,7 @@ export default function FormNavigation({
         type="button"
         variant="outline"
         onClick={onPrev}
-        disabled={isFirstStep || isSubmitting}
-        className={isFirstStep ? 'opacity-0 pointer-events-none' : ''}
+        className={isFirstStep ? 'opacity-0 pointer-events-none' : isSubmitting ? 'opacity-50' : ''}
       >
         Back
       </Button>
@@ -33,8 +32,7 @@ export default function FormNavigation({
       <Button
         type="button"
         onClick={onNext}
-        disabled={isNextDisabled || isSubmitting}
-        className="bg-purple-600 hover:bg-purple-700 text-white"
+        className={`bg-purple-600 hover:bg-purple-700 text-white ${(isNextDisabled || isSubmitting) ? 'opacity-50' : ''}`}
       >
         {isSubmitting ? (
           <div className="flex items-center">

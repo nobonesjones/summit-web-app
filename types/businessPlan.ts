@@ -9,10 +9,11 @@ export interface BusinessPlanSection {
 
 export interface BusinessPlan {
   id?: string;
+  user_id?: string;
   title: string;
-  businessIdea: string;
+  business_idea: string;
   location: string;
   category: string;
   sections: BusinessPlanSection[];
-  createdAt?: string;
+  created_at?: string;
 } 

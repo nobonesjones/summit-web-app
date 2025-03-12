@@ -1,7 +1,7 @@
 'use client'
 
 import PageWrapper from "@/components/wrapper/page-wrapper"
-import { supabase } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 import { Auth } from "@supabase/auth-ui-react"
 import { ThemeSupa } from "@supabase/auth-ui-shared"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -20,6 +20,8 @@ export default function SignInPage() {
     const searchParams = useSearchParams()
     const [isClient, setIsClient] = useState(false)
     const [isRedirecting, setIsRedirecting] = useState(false)
+    const [isLoading, setIsLoading] = useState(true)
+    const supabase = createClient()
     
     // Centralized function to handle redirects after authentication
     const redirectAfterAuth = (redirectPath?: string) => {
@@ -32,8 +34,8 @@ export default function SignInPage() {
         
         console.log(`Redirecting to: ${finalPath}`)
         
-        // Use direct browser navigation for more immediate effect
-        window.location.href = finalPath
+        // Use router for navigation
+        router.push(finalPath)
     }
     
     useEffect(() => {
@@ -42,6 +44,7 @@ export default function SignInPage() {
         // Check if user is already signed in
         const checkUser = async () => {
             try {
+                setIsLoading(true)
                 const { data, error } = await supabase.auth.getSession()
                 
                 if (error) {
@@ -50,12 +53,13 @@ export default function SignInPage() {
                 }
                 
                 if (data.session) {
-                    console.log('User already signed in, redirecting to dashboard')
-                    // User is signed in, redirect to the intended page or dashboard
+                    console.log('User already signed in:', data.session.user.email)
                     redirectAfterAuth()
                 }
             } catch (err) {
-                console.error('Exception checking user session:', err)
+                console.error('Error in auth check:', err)
+            } finally {
+                setIsLoading(false)
             }
         }
         
@@ -70,8 +74,8 @@ export default function SignInPage() {
             if (event === 'SIGNED_IN' && session) {
                 // User has signed in, redirect to dashboard immediately
                 toast({
-                    title: "Sign in successful",
-                    description: "Redirecting to dashboard...",
+                    title: "Signed in successfully",
+                    description: `Welcome back, ${session.user.email}!`
                 })
                 
                 // Use the centralized redirect function
@@ -83,6 +87,53 @@ export default function SignInPage() {
             authListener.subscription.unsubscribe()
         }
     }, [])
+    
+    // Handle form submission
+    const handleSignIn = async (formData: SignInFormData) => {
+        try {
+            const { email, password } = formData
+            
+            if (!email || !password) {
+                toast({
+                    title: "Missing credentials",
+                    description: "Please provide both email and password",
+                    variant: "destructive"
+                })
+                return
+            }
+            
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            })
+            
+            if (error) {
+                console.error('Sign in error:', error)
+                toast({
+                    title: "Sign in failed",
+                    description: error.message,
+                    variant: "destructive"
+                })
+                return
+            }
+            
+            if (data.user) {
+                console.log('User signed in successfully:', data.user.email)
+                toast({
+                    title: "Signed in successfully",
+                    description: `Welcome back, ${data.user.email}!`
+                })
+                redirectAfterAuth()
+            }
+        } catch (err) {
+            console.error('Error during sign in:', err)
+            toast({
+                title: "Sign in error",
+                description: "An unexpected error occurred. Please try again.",
+                variant: "destructive"
+            })
+        }
+    }
     
     if (!isClient) return null
     

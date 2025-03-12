@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Question, useBusinessPlanForm } from '@/lib/hooks/useBusinessPlanForm';
 import ProgressIndicator from '../shared/form/ProgressIndicator';
 import QuestionCard from '../shared/form/QuestionCard';
 import FormNavigation from '../shared/form/FormNavigation';
 import SuggestionsList from '../shared/suggestions/SuggestionsList';
 import { X } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface BusinessPlanFormProps {
   onSubmit: (data: Record<string, string>) => void;
@@ -211,7 +213,48 @@ const ClickableOptions = ({
   );
 };
 
+// Add this near the top of the file, after imports
+const logFormState = (formState: any) => {
+  console.log('Current form state:', {
+    currentStep: formState.currentStep,
+    currentQuestion: formState.currentStep >= 0 ? businessPlanQuestions[formState.currentStep]?.id : 'none',
+    answers: formState.answers,
+    suggestions: Object.keys(formState.suggestions).length,
+    suggestionsLoaded: formState.suggestionsLoaded
+  });
+};
+
 export default function BusinessPlanForm({ onSubmit, isSubmitting = false }: BusinessPlanFormProps) {
+  const [formError, setFormError] = useState<string | null>(null);
+  const [componentMounted, setComponentMounted] = useState(false);
+  const [renderAttempts, setRenderAttempts] = useState(0);
+
+  // Set componentMounted to true when component mounts
+  useEffect(() => {
+    console.log('BusinessPlanForm: Component mounted');
+    setComponentMounted(true);
+    
+    // Increment render attempts to track how many times we've tried to render
+    setRenderAttempts(prev => prev + 1);
+  }, []);
+
+  // Log render attempts
+  useEffect(() => {
+    console.log(`BusinessPlanForm: Render attempt ${renderAttempts}`);
+  }, [renderAttempts]);
+
+  // Force a re-render after a short delay if needed
+  useEffect(() => {
+    if (componentMounted && !currentQuestion && renderAttempts < 3) {
+      console.log('BusinessPlanForm: No current question, forcing re-render');
+      const timer = setTimeout(() => {
+        setRenderAttempts(prev => prev + 1);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [componentMounted, renderAttempts]);
+
   const {
     formState,
     currentQuestion,
@@ -229,6 +272,8 @@ export default function BusinessPlanForm({ onSubmit, isSubmitting = false }: Bus
 
   // Load suggestions when the current question changes, but only if they haven't been loaded yet
   useEffect(() => {
+    if (!componentMounted) return;
+    
     if (currentQuestion && !currentQuestion.hideSuggestions) {
       // For question 3 (targetMarket), only fetch suggestions if we have answers for questions 1 and 2
       if (currentQuestion.id === 'targetMarket') {
@@ -237,26 +282,40 @@ export default function BusinessPlanForm({ onSubmit, isSubmitting = false }: Bus
         
         // Only fetch suggestions if we have both previous answers and suggestions haven't been loaded yet
         if (businessIdea && location && !areSuggestionsLoaded(currentQuestion.id)) {
-          console.log('Initial fetch of suggestions for targetMarket question');
-          console.log('Business idea:', businessIdea);
-          console.log('Location:', location);
+          console.log('BusinessPlanForm: Initial fetch of suggestions for targetMarket question');
+          console.log('BusinessPlanForm: Business idea:', businessIdea);
+          console.log('BusinessPlanForm: Location:', location);
           refreshSuggestions(false); // false means don't force refresh
         } else if (!businessIdea || !location) {
-          console.log('Missing previous answers for targetMarket question');
-          console.log('Business idea:', businessIdea);
-          console.log('Location:', location);
+          console.log('BusinessPlanForm: Missing previous answers for targetMarket question');
+          console.log('BusinessPlanForm: Business idea:', businessIdea);
+          console.log('BusinessPlanForm: Location:', location);
         } else {
-          console.log('Suggestions already loaded for targetMarket question');
+          console.log('BusinessPlanForm: Suggestions already loaded for targetMarket question');
         }
       } else if (!areSuggestionsLoaded(currentQuestion.id)) {
         // For other questions, fetch suggestions if they haven't been loaded yet
         refreshSuggestions(false);
       }
     }
-  }, [currentQuestion, formState.answers, refreshSuggestions, areSuggestionsLoaded]);
+  }, [currentQuestion, formState.answers, refreshSuggestions, areSuggestionsLoaded, componentMounted]);
+
+  // Add this after the useBusinessPlanForm hook is called
+  React.useEffect(() => {
+    console.log('BusinessPlanForm: Form state initialized');
+    logFormState(formState);
+  }, [formState]);
+
+  React.useEffect(() => {
+    console.log('BusinessPlanForm: Step changed to:', formState.currentStep);
+    logFormState(formState);
+  }, [formState.currentStep]);
 
   const handleNext = () => {
+    console.log('BusinessPlanForm: Next button clicked');
+    console.log('BusinessPlanForm: Current answer:', formState.answers[currentQuestion.id]);
     if (isLastQuestion) {
+      console.log('BusinessPlanForm: Last question - submitting form');
       onSubmit(formState.answers);
     } else {
       nextStep();
@@ -264,34 +323,70 @@ export default function BusinessPlanForm({ onSubmit, isSubmitting = false }: Bus
   };
 
   const handleSuggestionSelect = (suggestion: string) => {
-    if (currentQuestion) {
-      updateAnswer(currentQuestion.id, suggestion);
-    }
+    console.log('BusinessPlanForm: Suggestion selected:', suggestion);
+    console.log('BusinessPlanForm: For question:', currentQuestion.id);
+    updateAnswer(currentQuestion.id, suggestion);
   };
 
-  // Handle manual refresh of suggestions
+  // Modify the handleRefreshSuggestions function
   const handleRefreshSuggestions = () => {
-    if (currentQuestion) {
-      refreshSuggestions(true); // true means force refresh
-    }
+    console.log('BusinessPlanForm: Refreshing suggestions for:', currentQuestion.id);
+    refreshSuggestions(true);
   };
 
-  if (!currentQuestion) {
-    return <div>Loading...</div>;
+  // Show a simple loading state while the component is initializing
+  if (!componentMounted) {
+    console.log('BusinessPlanForm: Not mounted yet, showing skeleton');
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-[400px] w-full rounded-lg" />
+      </div>
+    );
   }
 
+  // If we've tried to render multiple times but still don't have a question, show an error
+  if (!currentQuestion && renderAttempts >= 3) {
+    console.error('BusinessPlanForm: Failed to initialize form after multiple attempts');
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>Error Loading Form</AlertTitle>
+        <AlertDescription>
+          There was a problem loading the business plan form. Please try refreshing the page.
+          <pre className="mt-2 text-xs">{`Render attempts: ${renderAttempts}, Questions: ${businessPlanQuestions.length}`}</pre>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // If we don't have a current question yet, show a loading state
+  if (!currentQuestion) {
+    console.log('BusinessPlanForm: No current question yet, showing loading state');
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-[400px] w-full rounded-lg" />
+      </div>
+    );
+  }
+
+  console.log('BusinessPlanForm: Rendering question:', currentQuestion.id);
+  
   const currentSuggestions = formState.suggestions[currentQuestion.id] || [];
   const currentAnswer = formState.answers[currentQuestion.id] || '';
 
-  // Special case for question 3 (targetMarket) - only show suggestions if we have answers for questions 1 and 2
+  // Determine if we should show suggestions for the current question
   const shouldShowSuggestions = 
+    currentQuestion && 
     !currentQuestion.hideSuggestions && 
     currentQuestion.inputType !== 'clickable-options' &&
     !(currentQuestion.id === 'targetMarket' && 
       (!formState.answers.businessIdea || !formState.answers.location));
 
   return (
-    <div className="bg-card rounded-lg shadow-md p-6 border border-border">
+    <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-6">
       <h2 className="text-2xl font-bold mb-6 text-foreground">Create Your Business Plan</h2>
       
       <ProgressIndicator
@@ -300,8 +395,15 @@ export default function BusinessPlanForm({ onSubmit, isSubmitting = false }: Bus
         percentage={progressPercentage}
       />
       
+      {formError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{formError}</AlertDescription>
+        </Alert>
+      )}
+      
       {/* For questions with clickable options */}
-      {currentQuestion.inputType === 'clickable-options' ? (
+      {currentQuestion && currentQuestion.inputType === 'clickable-options' ? (
         <div>
           <h3 className="text-xl font-semibold mb-4 text-foreground">{currentQuestion.text}</h3>
           <p className="text-sm text-foreground/70 mb-2">{currentQuestion.placeholder}</p>
@@ -314,21 +416,23 @@ export default function BusinessPlanForm({ onSubmit, isSubmitting = false }: Bus
         </div>
       ) : (
         // For regular questions
-        <QuestionCard
-          question={currentQuestion.text}
-          inputType={currentQuestion.inputType}
-          placeholder={currentQuestion.placeholder}
-          options={currentQuestion.options}
-          value={currentAnswer}
-          onChange={(value) => updateAnswer(currentQuestion.id, value)}
-          onSuggestionSelect={handleSuggestionSelect}
-          onRefreshSuggestions={refreshSuggestions}
-          hideSuggestions={true} // We're handling suggestions separately below
-        />
+        currentQuestion && (
+          <QuestionCard
+            question={currentQuestion.text}
+            inputType={currentQuestion.inputType}
+            placeholder={currentQuestion.placeholder}
+            options={currentQuestion.options}
+            value={currentAnswer}
+            onChange={(value) => updateAnswer(currentQuestion.id, value)}
+            onSuggestionSelect={handleSuggestionSelect}
+            onRefreshSuggestions={handleRefreshSuggestions}
+            hideSuggestions={true} // We're handling suggestions separately below
+          />
+        )
       )}
       
       {/* Only show suggestions if this question should have them */}
-      {shouldShowSuggestions && (
+      {shouldShowSuggestions && currentQuestion && (
         <SuggestionsList
           suggestions={currentSuggestions}
           onSelect={handleSuggestionSelect}
@@ -339,7 +443,7 @@ export default function BusinessPlanForm({ onSubmit, isSubmitting = false }: Bus
       )}
       
       {/* Special message for question 3 when missing previous answers */}
-      {currentQuestion.id === 'targetMarket' && 
+      {currentQuestion && currentQuestion.id === 'targetMarket' && 
        (!formState.answers.businessIdea || !formState.answers.location) && (
         <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-md">
           <p className="text-sm text-yellow-800 dark:text-yellow-200">

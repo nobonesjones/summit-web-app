@@ -10,7 +10,7 @@ async function testOpenAI() {
 
     console.log('Testing OpenAI API connection...');
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: 'You are a helpful assistant.' },
         { role: 'user', content: 'Hello, can you hear me?' }

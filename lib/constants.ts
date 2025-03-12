@@ -13,7 +13,7 @@ export const PERPLEXITY_API_URL = 'https://api.perplexity.ai';
 
 // Default models
 export const DEFAULT_OPENAI_MODEL = 'gpt-4o';
-export const DEFAULT_PERPLEXITY_MODEL = 'llama-3-sonar-small-32k-online';
+export const DEFAULT_PERPLEXITY_MODEL = 'sonar';
 
 // Form constants
 export const MAX_BUSINESS_IDEA_LENGTH = 500;

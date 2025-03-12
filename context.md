@@ -1,4 +1,3 @@
-
 ## 1. Project Overview
 
 Summit Mini-Apps Platform is a suite of AI-powered tools designed to help business owners quickly generate valuable business planning resources. Each mini-app addresses a specific business need and serves as a lead magnet for Summit's startup mentoring platform. The platform will feature multiple mini-apps, save user outputs, and streamline the process of creating business plans and growth strategies.
@@ -43,19 +42,24 @@ Note: The initial development will focus solely on the 15-Minute Business Plan G
 
 ## 6. Technical Stack
 
-Note: This project adapts an existing Next.js 15 Starter Kit, refactoring its folder structure to accommodate our specific requirements for the Summit Mini-Apps Platform.
+Note: This project adapts an existing Next.js 15 Starter Kit, refactoring its folder structure to accommodate our specific requirements for the Summit Mini-Apps Platform. we have now decided to migrate from convex db to supabase db as per updates below; 
+
+# Updated Technical Stack for Summit Mini-Apps Platform
+
+## 6. Technical Stack (Updated)
 
 ### Frontend
 - **Next.js 15 (App Router)** - Latest version for optimal routing and SEO
 - **TypeScript** - For type-safe code and maintainability
 - **Tailwind CSS** - For responsive, utility-first styling
 - **Shadcn/ui** - For beautiful, accessible UI components
-- **Clerk** - For authentication and user management (must remove clerk and replace with supabase auth) 
-- **supabase auth** - we have no decided to swap from Clerk to supabase 
+- **Supabase Auth** - For authentication and user management
 
 ### Backend & Data
-- **Convex DB** - Real-time database with built-in file storage
-- **Convex Functions** - Serverless functions for backend logic
+- **Supabase Database** - PostgreSQL database with powerful features
+- **Supabase Functions** - Serverless functions for backend logic
+- **Supabase Storage** - For file storage and management
+- **Supabase Realtime** - For real-time data updates
 - **Perplexity API** - For fetching up-to-date information
 
 ### AI Integration
@@ -65,57 +69,138 @@ Note: This project adapts an existing Next.js 15 Starter Kit, refactoring its fo
 ### Additional Services
 - **Polar.sh** - For potential future monetization of premium mini-apps
 
-## 7. Project Structure
+## Migration Notes: Convex to Supabase
+
+### Database Schema Migration
+
+The existing Convex schema will be migrated to Supabase with the following structure:
+
+#### Users Table
+- Directly integrated with Supabase Auth
+- Additional user metadata stored in profiles table
+
+#### Tables to Migrate
+- **mini_apps** - Collection of available mini-applications
+- **questions** - Questions for each mini-app flow
+- **outputs** - Generated business plans and other content
+- **answers** - User responses to mini-app questions
+- **ai_prompts** - System prompts for AI generation
+- **ai_responses** - Cached AI responses for optimization
+- **research_data** - External data collected for business plans
+
+### Key Changes in Implementation (done)
+
+1. **Authentication Flow**
+   - Continue using Supabase Auth (already implemented)
+   - Update user profile management to use Supabase profiles table
+
+2. **Data Access Patterns**
+   - Replace Convex queries with Supabase queries
+   - Implement Row-Level Security (RLS) policies for data protection
+   - Use Postgres functions for complex data operations
+
+3. **Real-time Updates**
+   - Replace Convex subscriptions with Supabase Realtime subscriptions
+   - Implement channel-based listening for collaborative features
+
+4. **File Storage**
+   - Migrate file handling from Convex to Supabase Storage
+   - Update file upload/download processes
+
+5. **Serverless Functions**
+   - Migrate Convex functions to Supabase Edge Functions
+   - Rewrite backend logic using Supabase's serverless approach
+
+### Performance Considerations
+- Leverage Supabase's indexing capabilities for query optimization
+- Implement appropriate caching strategies for AI responses
+- Use Postgres functions for complex operations that should run on the server
+
+### Security Implementation
+- Set up appropriate RLS policies to match previous access patterns
+- Implement JWT validation for secure API access
+- Create appropriate service roles for backend operations
+
+## Updated Project Structure
 
 ```
 ├── app/
-│   ├── (auth)/         # Authentication routes
-│   ├── (marketing)/    # Marketing pages
-│   ├── api/            # API routes
-│   │   ├── ai/         # AI integration endpoints
-│   │   └── perplexity/ # Perplexity search integration
-│   ├── dashboard/      # User dashboard to view saved outputs
-│   ├── mini-apps/      # Mini-apps container
-│   │   ├── business-plan/       # 15-Minute Business Plan Generator
-│   │   ├── growth-plan/         # 30-Day Growth Plan
-│   │   ├── one-page-plan/       # One-Page Plan Generator
-│   │   └── sprint-planner/      # 30-Day Sprint Planner
-│   └── playground/     # AI Playground (kept from starter kit)
-├── components/
-│   ├── homepage/       # Landing page components
-│   ├── mini-apps/      # Mini-app specific components
-│   │   ├── business-plan/  # Components for business plan app
-│   │   ├── growth-plan/    # Components for growth plan app
-│   │   ├── one-page-plan/  # Components for one-page plan app
-│   │   ├── sprint-planner/ # Components for sprint planner app
-│   │   └── shared/         # Components shared between mini-apps
-│   │       ├── form/       # Dynamic form components
-│   │       ├── results/    # Result display components
-│   │       └── suggestions/ # AI suggestion components
-│   ├── shared/         # Shared UI components
-│   └── wrapper/        # Layout wrappers and navigation
-├── config/             # Configuration files
-│   ├── mini-apps/      # Mini-apps configuration
-│   └── ai/             # AI prompts and configurations
-├── convex/             # Convex DB schema and functions
-│   ├── schema/         # Database schema
-│   ├── auth/           # Authentication functions
-│   ├── mini-apps/      # Mini-app specific functions
-│   └── ai/             # AI processing functions
-├── lib/                # Utility functions
-│   ├── ai/             # AI utilities and prompt engineering
-│   ├── form/           # Form handling utilities
-│   └── helpers/        # General helper functions
-├── public/             # Static assets
-│   ├── images/         # Image assets
-│   ├── svg/            # SVG assets
-│   └── templates/      # PDF/Doc templates for downloadable outputs
-└── styles/             # Global styles
+│   ├── (auth)/          # Authentication routes
+│   ├── (marketing)/     # Marketing pages
+│   ├── api/             # API routes
+│   │   ├── ai/          # AI integration endpoints
+│   │   └── perplexity/  # Perplexity search integration
+│   ├── dashboard/       # User dashboard to view saved outputs
+│   ├── mini-apps/       # Mini-apps container
+│   └── playground/      # AI Playground (kept from starter kit)
+├── components/          # Same component structure as before
+├── config/              # Configuration files
+├── lib/                 # Utility functions
+│   ├── ai/              # AI utilities and prompt engineering
+│   ├── form/            # Form handling utilities 
+│   ├── helpers/         # General helper functions
+│   └── supabase/        # Supabase client and utilities (NEW)
+├── public/              # Static assets
+└── styles/              # Global styles
+├── supabase/            # NEW: Supabase configuration
+│   ├── functions/       # Edge Functions
+│   ├── migrations/      # Database migrations
+│   └── seed/            # Seed data for development
 ```
+
+## Implementation Strategy
+
+### Phase 1: Setup and Schema Migration  (done)
+- Create Supabase project and configure environments
+- Set up database tables and relationships
+- Implement RLS policies for security
+- Migrate authentication handling
+
+### Phase 2: Backend Logic Migration  (done)
+- Rewrite data access functions using Supabase client
+- Implement serverless functions for complex operations
+- Set up file storage for document management
+
+### Phase 3: Frontend Integration  (done)
+- Update context providers and hooks
+- Refactor components to use Supabase client
+- Implement real-time subscription handling
+
+### Phase 4: Testing and Optimization  (done)
+- Test all user flows end-to-end
+- Optimize query performance
+- Ensure proper error handling
+
+
+
+## 7. Project Structure 
+
+├── app/
+│   ├── (auth)/          # Authentication routes
+│   ├── (marketing)/     # Marketing pages
+│   ├── api/             # API routes
+│   │   ├── ai/          # AI integration endpoints
+│   │   └── perplexity/  # Perplexity search integration
+│   ├── dashboard/       # User dashboard to view saved outputs
+│   ├── mini-apps/       # Mini-apps container
+│   └── playground/      # AI Playground (kept from starter kit)
+├── components/          # Same component structure as before
+├── config/              # Configuration files
+├── lib/                 # Utility functions
+│   ├── ai/              # AI utilities and prompt engineering
+│   ├── form/            # Form handling utilities 
+│   ├── helpers/         # General helper functions
+│   └── supabase/        # Supabase client and utilities (NEW)
+├── public/              # Static assets
+└── styles/              # Global styles
+├── supabase/            # NEW: Supabase configuration
+│   ├── functions/       # Edge Functions
+│   ├── migrations/      # Database migrations
+│   └── seed/            # Seed data for development
 
 ## 8. Development Methodology
 
-### Phase 1: Core Platform & First Mini-App
+### Phase 1: Core Platform & First Mini-App  (done)
 - Adapt the Next.js 15 starter kit to Summit's needs
 - Implement home page design and mini-app selection UI
 - Develop one complete mini-app (15-Minute Business Plan Generator)
@@ -313,43 +398,77 @@ The Business Plan Generator interface will have the following characteristics:
 - Preview of other available mini-apps
 
 #### Dashboard Integration:
-- All created plans accessible from user dashboard
-- Plans displayed in a list/grid with:
-  - Plan name/type
-  - Creation date
-  - Preview thumbnail or summary
-  - Action buttons (view, edit, download, share)
-- Each plan stored as a complete, formatted document with proper headers and sections
-- Ability to compare different versions
-- Edit and share functionality
-- Search and filter capabilities
-- Option to duplicate and modify existing plans
+- # Summit Business Planning Platform - UI/UX Description
 
-### User Dashboard Design
-The dashboard will provide a centralized location for users to access and manage all their created plans:
+Part 1;
+## Header
+- **Logo**: Summit logo positioned in the top left corner
+- **Main Navigation**: Horizontal menu bar below the logo containing the following menu items:
+  - Home
+  - Business Plans
+  - One Page Plans
+  - 90 Day Sprints
+  - KPIs
+  - OKRs
+  - AI Consultants
+  - Market Research
+- **Action Buttons**: Right-aligned in the header
+  - Upgrade Button (with premium features highlight)
+  - Help Button (question mark icon)
+  - Account Button (user avatar/profile icon)
 
-#### Dashboard Layout:
-- Clean, organized grid/list of all user-generated plans
-- Sidebar navigation for different plan types and filters
-- Summary statistics at the top (total plans, recent activity)
-- Quick-action buttons for creating new plans
+Part 2;
+## Business Plans Interaction Flow
 
-#### Plan Document Format:
-- Each plan stored as a cohesive, well-formatted document
-- Proper document structure with hierarchical headers (H1, H2, H3)
-- Consistent typography and spacing throughout
-- Table of contents for easy navigation within longer plans
-- Clear section breaks and visual organization
-- Printer-friendly formatting
-- PDF export option with maintained formatting
+### Business Plans List View
+When a user clicks on "Business Plans" in the main navigation:
+1. The main content area transitions to display a comprehensive list of all business plans the user has created
+2. Each business plan is represented as a card with:
+   - Plan title (editable)
+   - Creation date
+   - Last modified date
+   - Brief description/summary (1-2 lines)
 
-#### Dashboard Features:
-- Sort plans by date, type, or custom tags
-- Filter plans by completion status or plan type
-- Search functionality for finding specific plans or content within plans
-- Bulk actions (download multiple, archive, delete)
-- User preferences for dashboard organization
-- Optional email reminders for plan follow-ups or revisions
+3. Additional elements in this view:
+   - "Create New Plan" button prominently positioned at the top right
+   - Sort options (by date, alphabetical)
+   - Pagination or infinite scroll for users with many plans
+   - Empty state design for first-time users with guidance on creating their first business plan
+
+Part 3;
+### Individual Business Plan View
+When a user clicks on a specific business plan from the list:
+1. The main content area transitions to display the selected business plan in full detail
+2. The layout includes:
+   - Plan title with inline edit capability
+   - Last modified timestamp
+   - Each plan stored as a cohesive, well-formatted document
+     - Proper document structure with hierarchical headers (H1, H2, H3)
+     - Consistent typography and spacing throughout
+     - Table of contents for easy navigation within longer plans
+     - Clear section breaks and visual organization
+     - Printer-friendly formatting
+     - PDF export option with maintained formatting
+   
+3. Interactive elements:
+   - Edit buttons for each section
+   - Save/Autosave indicator
+   - Share/Export options
+   - Version history access
+   - Back button to return to the list view
+   - Related plans or suggestions based on content
+
+## Responsive Design Considerations
+- The layout adapts seamlessly across desktop, tablet, and mobile devices
+- On smaller screens:
+  - The main navigation condenses into a hamburger menu
+  - Card layouts in the list view stack vertically
+  - Section navigation in the individual plan view becomes a dropdown selector
+
+## Visual Design Elements
+- Design elements match the website's theme
+
+-
 
 ### Design System
 - **Brand Colors:**
@@ -519,3 +638,264 @@ This schema provides:
 6. Structured format for research data
 
 The schema is specifically designed to support the Business Plan Generator as the first mini-app while establishing a foundation that will easily accommodate additional mini-apps in the future.
+
+## 1.2 Create Equivalent Table Structures in Supabase
+
+Based on the Convex schema, here are the equivalent Supabase table structures:
+
+## Step 2: Set Up Supabase Tables
+
+Let's generate SQL to create these tables in Supabase:
+
+```sql
+-- Users table (extends Supabase Auth)
+CREATE TABLE public.profiles (
+    id UUID REFERENCES auth.users(id) PRIMARY KEY,
+    email TEXT NOT NULL,
+    full_name TEXT,
+    avatar_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_active TIMESTAMP WITH TIME ZONE,
+    subscription TEXT,
+    credits TEXT,
+    preferences JSONB DEFAULT '{}'::JSONB
+);
+
+-- Outputs table - For storing generated plans
+CREATE TABLE public.outputs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES auth.users(id) NOT NULL,
+    mini_app_id UUID REFERENCES public.app_templates(id) NOT NULL,
+    title TEXT NOT NULL,
+    content JSONB NOT NULL,
+    formatted_content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE,
+    tags TEXT[] DEFAULT '{}'::TEXT[]
+);
+
+-- Answers table - For storing user responses to questions
+CREATE TABLE public.answers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    output_id UUID REFERENCES public.outputs(id) NOT NULL,
+    question_id UUID REFERENCES public.questions(id) NOT NULL,
+    value JSONB NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Prompts table - For AI templates
+CREATE TABLE public.prompts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    mini_app_id UUID REFERENCES public.app_templates(id) NOT NULL,
+    type TEXT NOT NULL,
+    content TEXT NOT NULL,
+    parameters TEXT[] DEFAULT '{}'::TEXT[],
+    version INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+-- AI Responses table - For caching and analysis
+CREATE TABLE public.ai_responses (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    prompt_id UUID REFERENCES public.prompts(id) NOT NULL,
+    input JSONB NOT NULL,
+    output TEXT NOT NULL,
+    model TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    metadata JSONB DEFAULT '{}'::JSONB
+);
+
+-- Research Data table - For storing external research
+CREATE TABLE public.research_data (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    output_id UUID REFERENCES public.outputs(id) NOT NULL,
+    topic TEXT NOT NULL,
+    source TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    url TEXT
+);
+
+-- Mini-Apps table - For storing mini-app configurations
+CREATE TABLE public.app_templates (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    description TEXT NOT NULL,
+    icon TEXT NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    "order" INTEGER NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE,
+    config JSONB NOT NULL DEFAULT '{}'::JSONB
+);
+
+-- Questions table - For storing mini-app questions
+CREATE TABLE public.questions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    mini_app_id UUID REFERENCES public.app_templates(id) NOT NULL,
+    text TEXT NOT NULL,
+    input_type TEXT NOT NULL,
+    placeholder TEXT,
+    required BOOLEAN NOT NULL DEFAULT FALSE,
+    "order" INTEGER NOT NULL,
+    options TEXT[] DEFAULT '{}'::TEXT[],
+    next_question_logic JSONB DEFAULT '{}'::JSONB
+);
+
+-- Business Plans table - For storing business plans
+CREATE TABLE public.business_plans (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES auth.users(id) NOT NULL,
+    title TEXT NOT NULL,
+    business_idea TEXT NOT NULL,
+    location TEXT NOT NULL,
+    category TEXT NOT NULL,
+    sections JSONB NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes to match Convex indexes
+CREATE INDEX idx_outputs_user_id ON public.outputs(user_id);
+CREATE INDEX idx_outputs_mini_app_id ON public.outputs(mini_app_id);
+CREATE INDEX idx_outputs_created_at ON public.outputs(created_at);
+
+CREATE INDEX idx_answers_output_id ON public.answers(output_id);
+CREATE INDEX idx_answers_question_id ON public.answers(question_id);
+
+CREATE INDEX idx_prompts_mini_app_id ON public.prompts(mini_app_id);
+CREATE INDEX idx_prompts_type ON public.prompts(type);
+
+CREATE INDEX idx_ai_responses_prompt_id ON public.ai_responses(prompt_id);
+CREATE INDEX idx_ai_responses_created_at ON public.ai_responses(created_at);
+
+CREATE INDEX idx_research_data_output_id ON public.research_data(output_id);
+CREATE INDEX idx_research_data_topic ON public.research_data(topic);
+
+CREATE INDEX idx_app_templates_slug ON public.app_templates(slug);
+CREATE INDEX idx_app_templates_is_active ON public.app_templates(is_active);
+
+CREATE INDEX idx_questions_mini_app_id ON public.questions(mini_app_id);
+CREATE INDEX idx_questions_order ON public.questions("order");
+
+CREATE INDEX idx_business_plans_user_id ON public.business_plans(user_id);
+CREATE INDEX idx_business_plans_created_at ON public.business_plans(created_at);
+```
+
+### 2.1 Set Up Row-Level Security (RLS) Policies
+
+Now let's set up RLS policies to secure the data:
+
+```sql
+-- Enable Row Level Security on all tables
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.outputs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.answers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.prompts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ai_responses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.research_data ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.app_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.questions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.business_plans ENABLE ROW LEVEL SECURITY;
+
+-- Profiles: Users can only read/write their own profiles
+CREATE POLICY "Users can view their own profile" 
+ON public.profiles FOR SELECT 
+USING (auth.uid() = id);
+
+CREATE POLICY "Users can update their own profile" 
+ON public.profiles FOR UPDATE 
+USING (auth.uid() = id);
+
+-- Outputs: Users can only read/write their own outputs
+CREATE POLICY "Users can view their own outputs" 
+ON public.outputs FOR SELECT 
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create their own outputs" 
+ON public.outputs FOR INSERT 
+WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own outputs" 
+ON public.outputs FOR UPDATE 
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own outputs" 
+ON public.outputs FOR DELETE 
+USING (auth.uid() = user_id);
+
+-- Business Plans: Users can only read/write their own business plans
+CREATE POLICY "Users can view their own business plans" 
+ON public.business_plans FOR SELECT 
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create their own business plans" 
+ON public.business_plans FOR INSERT 
+WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own business plans" 
+ON public.business_plans FOR UPDATE 
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own business plans" 
+ON public.business_plans FOR DELETE 
+USING (auth.uid() = user_id);
+
+-- App Templates: All users can view active app templates
+CREATE POLICY "Anyone can view active app templates" 
+ON public.app_templates FOR SELECT 
+USING (is_active = true);
+
+-- Questions: All users can view questions
+CREATE POLICY "Anyone can view questions" 
+ON public.questions FOR SELECT 
+USING (true);
+
+-- Similar policies for other tables...
+```
+
+## Step 3: Replace Convex Client with Supabase Client
+
+### 3.1 Update Initialization Code
+
+First, let's check how the Convex client is currently initialized:
+
+```
+"use client";
+
+import { ReactNode, createContext, useContext } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
+import { Database } from "@/types/supabase";
+
+// Create a context for Supabase
+const SupabaseContext = createContext<SupabaseClient<Database> | undefined>(undefined);
+
+// Hook to use Supabase client
+export function useSupabase() {
+  const context = useContext(SupabaseContext);
+  if (context === undefined) {
+    throw new Error("useSupabase must be used within a SupabaseProvider");
+  }
+  return context;
+}
+
+// Supabase provider component
+export function Providers({ children }: { children: ReactNode }) {
+  const supabase = createClient();
+  
+  return (
+    <SupabaseContext.Provider value={supabase}>
+      {children}
+    </SupabaseContext.Provider>
+  );
+}
+```
+
+## Step 4: Update Backend Functions
+
+Let's look at how Convex functions are currently structured:

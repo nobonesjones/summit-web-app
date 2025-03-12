@@ -17,9 +17,10 @@ import { NavItem } from "@/config/dashboard";
 interface MobileNavProps {
   mainNavItems?: NavItem[];
   sidebarNavItems: NavItem[];
+  actionButtons?: NavItem[];
 }
 
-export function MobileNav({ mainNavItems, sidebarNavItems }: MobileNavProps) {
+export function MobileNav({ mainNavItems, sidebarNavItems, actionButtons }: MobileNavProps) {
   const pathname = usePathname();
 
   return (
@@ -76,6 +77,23 @@ export function MobileNav({ mainNavItems, sidebarNavItems }: MobileNavProps) {
               );
             })}
           </div>
+          
+          {/* Action Buttons */}
+          {actionButtons && actionButtons.length > 0 && (
+            <div className="flex flex-col space-y-2 mt-8 pt-4 border-t">
+              <h3 className="text-sm font-medium text-muted-foreground">Actions</h3>
+              {actionButtons.map((item, index) => (
+                <MobileLink
+                  key={index}
+                  href={item.href}
+                  pathname={pathname}
+                  className="text-sm font-medium"
+                >
+                  {item.title}
+                </MobileLink>
+              ))}
+            </div>
+          )}
         </ScrollArea>
       </SheetContent>
     </Sheet>

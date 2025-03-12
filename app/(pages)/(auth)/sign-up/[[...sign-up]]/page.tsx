@@ -1,7 +1,7 @@
 "use client"
 
 import PageWrapper from "@/components/wrapper/page-wrapper"
-import { supabase } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 import { Auth } from "@supabase/auth-ui-react"
 import { ThemeSupa } from "@supabase/auth-ui-shared"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -13,6 +13,7 @@ export default function SignUpPage() {
     const searchParams = useSearchParams()
     const [isClient, setIsClient] = useState(false)
     const [isRedirecting, setIsRedirecting] = useState(false)
+    const supabase = createClient()
     
     // Centralized function to handle redirects after authentication
     const redirectAfterAuth = (redirectPath?: string) => {
@@ -25,8 +26,8 @@ export default function SignUpPage() {
         
         console.log(`Redirecting to: ${finalPath}`)
         
-        // Use direct browser navigation for more immediate effect
-        window.location.href = finalPath
+        // Use router for navigation instead of direct window.location for consistency
+        router.push(finalPath)
     }
     
     useEffect(() => {

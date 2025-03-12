@@ -1,7 +1,7 @@
 export default {
   providers: [
     {
-      domain: "https://inspired-mallard-98.clerk.accounts.dev",
+      domain: process.env.NEXT_PUBLIC_SUPABASE_URL || "https://your-project.supabase.co",
       applicationID: "convex",
     },
   ]

@@ -13,7 +13,10 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as businessPlans from "../businessPlans.js";
 import type * as http from "../http.js";
+import type * as mini_apps_api from "../mini-apps/api.js";
+import type * as mini_apps_seed from "../mini-apps/seed.js";
 import type * as plans from "../plans.js";
 import type * as subscriptions from "../subscriptions.js";
 import type * as users from "../users.js";
@@ -27,7 +30,10 @@ import type * as users from "../users.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  businessPlans: typeof businessPlans;
   http: typeof http;
+  "mini-apps/api": typeof mini_apps_api;
+  "mini-apps/seed": typeof mini_apps_seed;
   plans: typeof plans;
   subscriptions: typeof subscriptions;
   users: typeof users;

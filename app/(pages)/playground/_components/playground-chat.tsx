@@ -98,7 +98,7 @@ export function PlaygroundChat() {
         />
         <Button
           onClick={handleSend}
-          disabled={!input.trim() || !selectedModel || isLoading}
+          className={(!input.trim() || !selectedModel || isLoading) ? 'opacity-50' : ''}
         >
           {isLoading ? "Sending..." : "Send"}
         </Button>

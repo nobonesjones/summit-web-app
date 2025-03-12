@@ -1,76 +1,90 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase/client'
-import { User, Session } from '@supabase/supabase-js'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { User } from '@supabase/supabase-js'
+
+const supabase = createClient()
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
-  const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
-  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
+    // Get initial session
     const getInitialSession = async () => {
       try {
-        setLoading(true)
-        const { data } = await supabase.auth.getSession()
-        setSession(data.session)
-        setUser(data.session?.user ?? null)
-
-        const { data: authListener } = supabase.auth.onAuthStateChange(
-          (event, session) => {
-            setSession(session)
-            setUser(session?.user ?? null)
-            router.refresh()
-          }
-        )
-
-        return () => {
-          authListener.subscription.unsubscribe()
+        console.log('[useAuth] Checking session')
+        const { data: { session }, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          console.error('[useAuth] Error getting session:', error)
+          setError(error)
+        } else if (session) {
+          console.log('[useAuth] Session found for user:', session.user.email)
+          setUser(session.user)
+        } else {
+          console.log('[useAuth] No session found')
+          setUser(null)
         }
-      } catch (error) {
-        console.error('Error getting initial session:', error)
+      } catch (e) {
+        console.error('[useAuth] Error:', e)
+        setError(e instanceof Error ? e : new Error('An error occurred'))
       } finally {
-        setLoading(false)
+        setIsLoading(false)
       }
     }
 
     getInitialSession()
-  }, [router])
 
-  const signOut = async () => {
-    try {
-      // First, sign out on the client side to clear local storage
-      await supabase.auth.signOut()
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[useAuth] Auth state changed:', event, !!session)
       
-      // Then call the API route to handle server-side sign out
-      const response = await fetch('/api/auth/sign-out', {
-        method: 'POST',
-      })
-      
-      if (response.ok) {
-        // Clear local state
-        setUser(null)
-        setSession(null)
-        
-        // Navigate to home page
-        router.push('/')
-        router.refresh()
+      if (session) {
+        setUser(session.user)
       } else {
-        console.error('Error signing out:', response.statusText)
+        setUser(null)
       }
-    } catch (error) {
-      console.error('Error signing out:', error)
+      
+      setIsLoading(false)
+    })
+
+    return () => {
+      console.log('[useAuth] Cleaning up subscription')
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  async function signOut() {
+    try {
+      console.log('[useAuth] Signing out user:', user?.email)
+      const { error } = await supabase.auth.signOut()
+      
+      if (error) {
+        console.error('[useAuth] Error signing out:', error)
+        throw error
+      }
+      
+      setUser(null)
+      console.log('[useAuth] User signed out successfully')
+    } catch (err) {
+      console.error('[useAuth] Error signing out:', err)
+      setError(err instanceof Error ? err : new Error('Failed to sign out'))
     }
   }
 
+  // Add isSignedIn property for easier checking
+  const isSignedIn = !!user
+
   return {
     user,
-    session,
-    loading,
+    isLoading,
+    error,
     signOut,
-    isSignedIn: !!user,
+    isSignedIn
   }
 } 

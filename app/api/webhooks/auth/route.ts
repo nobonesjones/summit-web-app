@@ -1,52 +1,144 @@
-import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server-async';
 
-export async function POST(request: Request) {
+// Webhook secret for verification
+const webhookSecret = process.env.SUPABASE_WEBHOOK_SECRET;
+
+export async function POST(request: NextRequest) {
   try {
-    // Get the signature from headers
-    const signature = request.headers.get('x-supabase-webhook-signature') || '';
-    
-    // In production, you should verify the webhook signature
-    // This requires setting up a webhook secret in your Supabase dashboard
-    // and implementing signature verification logic
-    
-    const payload = await request.json();
-    const { type, record } = payload;
-    
-    // Handle user creation event
-    if (type === 'INSERT' && payload.table === 'auth.users') {
-      const { id, email, raw_user_meta_data } = record;
-      
-      // Create a profile record for the new user
-      const { error } = await supabaseAdmin
-        .from('profiles')
-        .insert({
-          id,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          full_name: raw_user_meta_data?.full_name || '',
-          avatar_url: raw_user_meta_data?.avatar_url || '',
-        });
-      
-      if (error) {
-        console.error('Error creating profile:', error);
-        return NextResponse.json(
-          { error: error.message },
-          { status: 400 }
-        );
+    // Verify the webhook signature if a secret is configured
+    if (webhookSecret) {
+      const signature = request.headers.get('x-supabase-webhook-signature');
+      if (!signature) {
+        console.error('Missing webhook signature');
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
       
-      return NextResponse.json({ success: true });
+      // TODO: Implement proper signature verification
+      // This is a placeholder for actual signature verification
     }
     
-    // Handle other webhook events as needed
+    // Parse the webhook payload
+    const payload = await request.json();
+    console.log('Received auth webhook event:', payload.type);
+    
+    // Handle different event types
+    switch (payload.type) {
+      case 'USER_CREATED':
+        await handleUserCreated(payload.user);
+        break;
+      case 'USER_UPDATED':
+        await handleUserUpdated(payload.user);
+        break;
+      case 'USER_DELETED':
+        await handleUserDeleted(payload.user);
+        break;
+      default:
+        console.log('Unhandled webhook event type:', payload.type);
+    }
     
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error('Webhook error:', error);
-    return NextResponse.json(
-      { error: error.message || 'An error occurred' },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error('Error processing webhook:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+// Handle user creation events
+async function handleUserCreated(user: any) {
+  try {
+    console.log('Processing USER_CREATED webhook for user:', user.id);
+    
+    // Create a profile in Supabase
+    const supabase = await createServerSupabaseClient();
+    
+    // Check if profile already exists
+    const { data: existingProfile, error: checkError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+    
+    if (!checkError && existingProfile) {
+      console.log('Profile already exists for user:', user.id);
+      return;
+    }
+    
+    // Create a new profile
+    const { error } = await supabase
+      .from('profiles')
+      .insert({
+        id: user.id,
+        email: user.email || '',
+        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || '',
+        avatar_url: user.user_metadata?.avatar_url || '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+    
+    if (error) {
+      console.error('Error creating profile in webhook handler:', error);
+      throw error;
+    }
+    
+    console.log('Successfully created profile for user:', user.id);
+  } catch (error) {
+    console.error('Error in handleUserCreated:', error);
+    throw error;
+  }
+}
+
+// Handle user update events
+async function handleUserUpdated(user: any) {
+  try {
+    console.log('Processing USER_UPDATED webhook for user:', user.id);
+    
+    // Update the user's profile in Supabase
+    const supabase = await createServerSupabaseClient();
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        email: user.email || '',
+        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || '',
+        avatar_url: user.user_metadata?.avatar_url || '',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', user.id);
+    
+    if (error) {
+      console.error('Error updating profile in webhook handler:', error);
+      throw error;
+    }
+    
+    console.log('Successfully updated profile for user:', user.id);
+  } catch (error) {
+    console.error('Error in handleUserUpdated:', error);
+    throw error;
+  }
+}
+
+// Handle user deletion events
+async function handleUserDeleted(user: any) {
+  try {
+    console.log('Processing USER_DELETED webhook for user:', user.id);
+    
+    // Delete the user's profile from Supabase
+    const supabase = await createServerSupabaseClient();
+    
+    const { error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', user.id);
+    
+    if (error) {
+      console.error('Error deleting profile in webhook handler:', error);
+      throw error;
+    }
+    
+    console.log('Successfully deleted profile for user:', user.id);
+  } catch (error) {
+    console.error('Error in handleUserDeleted:', error);
+    throw error;
   }
 } 

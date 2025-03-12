@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { useAuth } from "@/lib/hooks/useAuth";
+import Image from "next/image";
+import { useAuth } from "@/components/providers/auth-provider";
 import UserProfile from "@/components/user-profile";
 import { Button } from "@/components/ui/button";
 import ModeToggle from "@/components/mode-toggle";
@@ -18,7 +19,7 @@ interface NavItem {
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const { isSignedIn } = useAuth();
+  const { user } = useAuth();
   const pathname = usePathname();
 
   const toggleMenu = () => {
@@ -40,7 +41,14 @@ export default function Navbar() {
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center space-x-2">
-            <span className="text-xl font-bold">Summit</span>
+            <Image 
+              src="/images/summit-full-logo.png" 
+              alt="Summit Logo" 
+              width={180} 
+              height={40} 
+              priority
+              className="h-8 w-auto"
+            />
           </Link>
 
           {/* Desktop navigation - empty now */}
@@ -58,7 +66,7 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-4">
-          {isSignedIn ? (
+          {user ? (
             <UserProfile />
           ) : (
             <div className="hidden md:block">
@@ -99,7 +107,7 @@ export default function Navbar() {
                 {item.name}
               </Link>
             ))}
-            {!isSignedIn && (
+            {!user && (
               <div className="flex flex-col space-y-2 pt-2">
                 <Link href="/sign-in" onClick={closeMenu}>
                   <Button variant="outline" className="w-full">

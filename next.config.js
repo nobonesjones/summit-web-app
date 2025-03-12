@@ -38,6 +38,7 @@ const nextConfig = {
   },
   experimental: {
     reactCompiler: true,
+    serverActions: true,
   },
   pageExtensions: ["ts", "tsx", "mdx"],
   webpack: (config, { isServer }) => {

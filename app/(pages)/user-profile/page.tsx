@@ -1,36 +1,37 @@
 "use client";
 
-import PageWrapper from "@/components/wrapper/page-wrapper";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/lib/hooks/useAuth";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
+import { createClient } from "@/lib/supabase/client";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 
 export default function UserProfilePage() {
-  const { user, isSignedIn } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [fullName, setFullName] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
   const [email, setEmail] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const supabase = createClient();
 
   useEffect(() => {
-    if (!isSignedIn) {
-      router.push("/sign-in?redirectTo=/user-profile");
-      return;
-    }
-
-    if (user) {
-      setEmail(user.email || "");
+    if (!loading && !user) {
+      router.push("/sign-in");
+    } else if (user) {
+      // Initialize form with user data
       setFullName(user.user_metadata?.full_name || "");
+      setEmail(user.email || "");
       setAvatarUrl(user.user_metadata?.avatar_url || "");
     }
-  }, [user, isSignedIn, router]);
+  }, [user, loading, router]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,115 +39,131 @@ export default function UserProfilePage() {
     if (!user) return;
     
     try {
-      setLoading(true);
+      setIsUpdating(true);
       
-      const formData = new FormData();
-      formData.append('full_name', fullName);
-      formData.append('avatar_url', avatarUrl);
-      
-      const response = await fetch('/api/auth/profile', {
-        method: 'POST',
-        body: formData,
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          full_name: fullName,
+          avatar_url: avatarUrl,
+        },
       });
       
-      const data = await response.json();
+      if (error) throw error;
       
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to update profile');
-      }
-      
-      toast.success("Profile updated successfully");
-      router.refresh();
-    } catch (error: any) {
-      toast.error(error.message || "Error updating profile");
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully.",
+      });
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
     } finally {
-      setLoading(false);
+      setIsUpdating(false);
     }
   };
 
-  // Get user initials for avatar fallback
-  const getInitials = () => {
-    if (!fullName) return '?';
-    
-    const names = fullName.split(' ');
-    if (names.length >= 2) {
-      return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
-    } else if (names.length === 1) {
-      return names[0][0].toUpperCase();
-    }
-    
-    // Fallback to email
-    return email ? email[0].toUpperCase() : '?';
-  };
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="container max-w-2xl py-10">
+        <Card className="w-full">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Loading Profile...</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show sign in prompt if not authenticated
+  if (!user) {
+    return (
+      <div className="container max-w-2xl py-10">
+        <Card className="w-full">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Authentication Required</CardTitle>
+            <CardDescription>
+              Please sign in to view and edit your profile.
+            </CardDescription>
+          </CardHeader>
+          <CardFooter className="flex justify-center">
+            <Button onClick={() => router.push("/sign-in")}>Sign In</Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <PageWrapper>
-      <div className="container max-w-4xl py-12">
-        <h1 className="text-3xl font-bold mb-8">User Profile</h1>
-        
-        <div className="grid gap-8 md:grid-cols-[1fr_2fr]">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Picture</CardTitle>
-              <CardDescription>Your profile picture will be shown across the platform</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center">
-              <Avatar className="h-32 w-32 mb-4">
-                <AvatarImage src={avatarUrl} alt={fullName} />
-                <AvatarFallback className="text-2xl bg-blue-50 text-blue-900 dark:bg-blue-950 dark:text-blue-200">
-                  {getInitials()}
-                </AvatarFallback>
-              </Avatar>
+    <div className="container max-w-2xl py-10">
+      <div className="mb-6">
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/dashboard">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Dashboard
+          </Link>
+        </Button>
+      </div>
+      <Card className="w-full">
+        <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <Avatar className="h-24 w-24">
+              <AvatarImage src={avatarUrl} alt={fullName} />
+              <AvatarFallback>{fullName.charAt(0)}</AvatarFallback>
+            </Avatar>
+          </div>
+          <CardTitle className="text-2xl">Your Profile</CardTitle>
+          <CardDescription>
+            Update your personal information
+          </CardDescription>
+        </CardHeader>
+        <form onSubmit={handleUpdateProfile}>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full Name</Label>
               <Input
-                type="text"
-                placeholder="Avatar URL"
+                id="fullName"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Your full name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                value={email}
+                disabled
+                placeholder="Your email"
+              />
+              <p className="text-sm text-muted-foreground">
+                Email cannot be changed
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="avatarUrl">Avatar URL</Label>
+              <Input
+                id="avatarUrl"
                 value={avatarUrl}
                 onChange={(e) => setAvatarUrl(e.target.value)}
-                className="w-full"
+                placeholder="https://example.com/avatar.jpg"
               />
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <form onSubmit={handleUpdateProfile}>
-              <CardHeader>
-                <CardTitle>Personal Information</CardTitle>
-                <CardDescription>Update your personal information</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    disabled
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Email cannot be changed. Contact support if you need to update your email.
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Your full name"
-                  />
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button type="submit" disabled={loading}>
-                  {loading ? "Updating..." : "Update Profile"}
-                </Button>
-              </CardFooter>
-            </form>
-          </Card>
-        </div>
-      </div>
-    </PageWrapper>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button 
+              type="submit" 
+              className={`w-full ${isUpdating ? 'opacity-50' : ''}`}
+            >
+              {isUpdating ? "Updating..." : "Update Profile"}
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
+    </div>
   );
 } 

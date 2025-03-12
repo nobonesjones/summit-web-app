@@ -18,7 +18,7 @@ export async function GET() {
     try {
       // Make a simple API call
       const response = await openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',

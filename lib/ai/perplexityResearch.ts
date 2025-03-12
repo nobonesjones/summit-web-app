@@ -33,7 +33,7 @@ export async function performPerplexityResearch(
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'sonar-medium-online',
+        model: 'sonar',
         messages: [
           {
             role: 'system',

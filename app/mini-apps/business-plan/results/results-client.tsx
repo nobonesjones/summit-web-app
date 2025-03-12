@@ -2,14 +2,17 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/lib/hooks/useAuth';
+import { useAuth } from '@/components/providers/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Loader2, Download, Edit, ArrowLeft, Plus, RefreshCw, Save } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { determineBusinessCategory } from '@/lib/ai/businessPlanUtils';
-import { useBusinessPlanService, saveBusinessPlan } from '@/lib/services/businessPlanService';
+import { useEnhancedBusinessPlanService, saveBusinessPlan } from '@/lib/services/enhancedBusinessPlanService';
 import { BusinessPlan, BusinessPlanSection } from '@/types/businessPlan';
 import { toast } from '@/components/ui/use-toast';
+import { createClient } from '@/lib/supabase/client';
+import { createBusinessPlan as createSupabaseBusinessPlan } from '@/lib/supabase/services/businessPlans';
+import { InlineEdit, InlineEditTitle, InlineEditDescription } from '@/components/ui/inline-edit';
 
 // Client component that uses useSearchParams
 export default function ResultsClient() {
@@ -22,10 +25,12 @@ export default function ResultsClient() {
   const [error, setError] = useState<string | null>(null);
   const [apiErrors, setApiErrors] = useState<Record<string, string>>({});
   const [isSaved, setIsSaved] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isSignedIn, loading } = useAuth();
-  const businessPlanService = useBusinessPlanService();
+  const { user, loading: isAuthLoading } = useAuth();
+  const businessPlanService = useEnhancedBusinessPlanService();
+  const supabase = createClient();
 
   // Get form data from URL params - using useCallback to memoize
   const getFormDataFromParams = useCallback(() => {
@@ -41,13 +46,26 @@ export default function ResultsClient() {
     return formData;
   }, [searchParams]);
 
-  useEffect(() => {
-    // Check if user is authenticated
-    if (!loading && !isSignedIn) {
-      router.push('/sign-in?redirectTo=/mini-apps/business-plan/results');
-      return;
-    }
+  // Process form data into a business plan
+  const processFormData = useCallback((formData: Record<string, string>) => {
+    // Determine business category
+    const category = determineBusinessCategory(formData.businessIdea);
+    
+    // Create business plan object with formatted title
+    const formattedTitle = `${formData.businessIdea}, ${formData.location}`;
+    
+    const plan: BusinessPlan = {
+      title: formattedTitle,
+      business_idea: formData.businessIdea,
+      location: formData.location,
+      category,
+      sections: []
+    };
+    
+    return plan;
+  }, []);
 
+  useEffect(() => {
     // Get form data from URL params
     const formData = getFormDataFromParams();
     
@@ -137,10 +155,154 @@ export default function ResultsClient() {
       }
     };
 
-    if (!loading && isSignedIn && searchParams) {
+    if (searchParams) {
       performResearchAndGenerate();
     }
-  }, [loading, isSignedIn, router, searchParams, getFormDataFromParams]);
+  }, [isAuthLoading, router, searchParams, getFormDataFromParams]);
+
+  // Ensure business plan has required fields from form data
+  useEffect(() => {
+    if (businessPlan) {
+      const formData = getFormDataFromParams();
+      
+      // Only update if we have form data and the business plan is missing required fields
+      if (formData.businessIdea && formData.location && 
+          (!businessPlan.business_idea || !businessPlan.location)) {
+        
+        console.log('Updating business plan with form data');
+        
+        setBusinessPlan(prevPlan => {
+          if (!prevPlan) return null;
+          
+          return {
+            ...prevPlan,
+            title: prevPlan.title || 'Untitled Business Plan',
+            business_idea: prevPlan.business_idea || formData.businessIdea,
+            location: prevPlan.location || formData.location,
+            category: prevPlan.category || 'New Company',
+            sections: prevPlan.sections || []
+          };
+        });
+      }
+    } else if (!businessPlan && !isLoading && !isResearching && !isGenerating) {
+      // If we don't have a business plan yet, but we're not loading or generating,
+      // create one from the form data
+      const formData = getFormDataFromParams();
+      
+      if (formData.businessIdea && formData.location) {
+        console.log('Creating business plan from form data');
+        const plan = processFormData(formData);
+        setBusinessPlan(plan);
+      }
+    }
+  }, [businessPlan, isLoading, isResearching, isGenerating, getFormDataFromParams, processFormData]);
+
+  // Auto-save for signed-in users
+  useEffect(() => {
+    const autoSave = async () => {
+      if (user && businessPlan && !isSaved && !isSaving && !isLoading) {
+        console.log('Auto-saving business plan for signed-in user');
+        console.log('Business plan data:', JSON.stringify(businessPlan, null, 2));
+        
+        try {
+          setIsSaving(true);
+          
+          // Use the enhanced business plan service to save
+          try {
+            const savedPlanId = await businessPlanService.saveBusinessPlan(businessPlan);
+            
+            if (!savedPlanId) {
+              throw new Error('Failed to save business plan - no ID returned');
+            }
+            
+            console.log('Successfully saved business plan with ID:', savedPlanId);
+            setIsSaved(true);
+            toast({
+              title: "Business plan saved",
+              description: "Your business plan has been saved successfully.",
+              variant: "default",
+            });
+          } catch (saveError) {
+            console.error('Error saving with enhanced service:', saveError);
+            
+            // Log detailed error information
+            if (saveError instanceof Error) {
+              console.error('Error name:', saveError.name);
+              console.error('Error message:', saveError.message);
+              console.error('Error stack:', saveError.stack);
+            }
+            
+            // Fall back to local storage if Supabase fails
+            await saveBusinessPlan(businessPlan);
+            toast({
+              title: "Saved locally",
+              description: "Your business plan has been saved to local storage.",
+              variant: "default",
+            });
+          }
+        } catch (error) {
+          console.error('Error in auto-save process:', error);
+          toast({
+            title: "Error saving",
+            description: "There was an error saving your business plan.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsSaving(false);
+        }
+      }
+    };
+    
+    autoSave();
+  }, [user, businessPlan, isSaved, isSaving, isLoading, businessPlanService]);
+
+  // Handle field updates
+  const handleFieldUpdate = (field: keyof BusinessPlan, value: string) => {
+    if (!businessPlan) return;
+    
+    setBusinessPlan(prev => {
+      if (!prev) return prev;
+      
+      const updatedPlan = { ...prev, [field]: value };
+      
+      // Mark as not saved so it will be auto-saved
+      setIsSaved(false);
+      
+      return updatedPlan;
+    });
+  };
+
+  // Handle section content update
+  const handleSectionUpdate = (sectionIndex: number, content: string) => {
+    if (!businessPlan || !businessPlan.sections) return;
+    
+    setBusinessPlan(prev => {
+      if (!prev || !prev.sections) return prev;
+      
+      const updatedSections = [...prev.sections];
+      updatedSections[sectionIndex] = {
+        ...updatedSections[sectionIndex],
+        content
+      };
+      
+      // Mark as not saved so it will be auto-saved
+      setIsSaved(false);
+      
+      return {
+        ...prev,
+        sections: updatedSections
+      };
+    });
+  };
+
+  // Toggle editing mode
+  const toggleEditing = () => {
+    setIsEditing(!isEditing);
+    if (isEditing) {
+      // If we're turning off editing, mark as not saved to trigger auto-save
+      setIsSaved(false);
+    }
+  };
 
   const handleRetry = async () => {
     // Get form data from URL params
@@ -202,21 +364,16 @@ export default function ResultsClient() {
     }
   };
 
-  const handleSaveToDashboard = async () => {
+  const handleSave = async () => {
     if (!businessPlan) return;
     
+    setIsSaving(true);
+    
     try {
-      setIsSaving(true);
+      console.log('Saving business plan:', businessPlan);
       
-      // Try to use the hook first, fall back to the standalone function
-      try {
-        // Save the business plan to the user's dashboard using Convex
-        await businessPlanService.saveBusinessPlan(businessPlan);
-      } catch (convexError) {
-        console.warn('Failed to save with Convex, falling back to local storage:', convexError);
-        // Fall back to local storage if Convex fails
-        await saveBusinessPlan(businessPlan);
-      }
+      // Use the enhanced business plan service to save
+      const savedPlanId = await businessPlanService.saveBusinessPlan(businessPlan);
       
       // Mark as saved
       setIsSaved(true);
@@ -226,6 +383,11 @@ export default function ResultsClient() {
         title: "Business Plan Saved",
         description: "Your business plan has been saved to your dashboard.",
       });
+      
+      // Redirect to dashboard after a short delay
+      setTimeout(() => {
+        router.push('/dashboard/business-plans');
+      }, 1500); // 1.5 second delay to show the success message
     } catch (error) {
       console.error('Error saving business plan:', error);
       
@@ -258,7 +420,13 @@ export default function ResultsClient() {
     router.push('/dashboard/plans');
   };
 
-  if (loading || isLoading) {
+  // Add a function to find the Executive Summary section
+  const findExecutiveSummarySection = (sections: BusinessPlanSection[] | undefined): BusinessPlanSection | undefined => {
+    if (!sections) return undefined;
+    return sections.find(section => section.title === 'Executive Summary');
+  };
+
+  if (isAuthLoading || isLoading) {
     return (
       <div className="container mx-auto px-4 py-12">
         <div className="flex flex-col items-center justify-center min-h-[50vh]">
@@ -315,25 +483,38 @@ export default function ResultsClient() {
         </Button>
         
         <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleEdit}
-            className="flex items-center"
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Plan
-          </Button>
+          {user && (
+            <Button
+              variant={isEditing ? "default" : "outline"}
+              size="sm"
+              onClick={toggleEditing}
+              className="flex items-center"
+            >
+              {isEditing ? (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Done Editing
+                </>
+              ) : (
+                <>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Plan
+                </>
+              )}
+            </Button>
+          )}
           
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDownload}
-            className="flex items-center"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Download PDF
-          </Button>
+          {user && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownload}
+              className="flex items-center"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download PDF
+            </Button>
+          )}
         </div>
       </div>
       
@@ -382,36 +563,170 @@ export default function ResultsClient() {
         </div>
         
         <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-4 text-foreground">{businessPlan?.title}</h2>
+          <div className="mb-6">
+            {isEditing && user ? (
+              <InlineEditTitle 
+                value={businessPlan?.title || ''} 
+                onChange={(value) => handleFieldUpdate('title', value)}
+                className="text-3xl font-bold mb-2"
+              />
+            ) : (
+              <h1 className="text-3xl font-bold mb-2 text-foreground">{businessPlan?.title}</h1>
+            )}
+            
+            <div className="flex flex-wrap gap-2 mb-4">
+              <div className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 px-3 py-1 rounded-full text-sm">
+                {isEditing && user ? (
+                  <InlineEdit
+                    value={businessPlan?.category || ''}
+                    onChange={(value) => handleFieldUpdate('category', value)}
+                  />
+                ) : (
+                  businessPlan?.category
+                )}
+              </div>
+              <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm">
+                {isEditing && user ? (
+                  <InlineEdit
+                    value={businessPlan?.location || ''}
+                    onChange={(value) => handleFieldUpdate('location', value)}
+                  />
+                ) : (
+                  businessPlan?.location
+                )}
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold mb-2 text-foreground">Business Idea</h2>
+              {isEditing && user ? (
+                <InlineEditDescription
+                  value={businessPlan?.business_idea || ''}
+                  onChange={(value) => handleFieldUpdate('business_idea', value)}
+                  className="text-foreground/80"
+                />
+              ) : (
+                <p className="text-foreground/80">{businessPlan?.business_idea}</p>
+              )}
+            </div>
+          </div>
           
           <div className="space-y-6">
-            {businessPlan?.sections.map((section, index) => (
-              <div key={index} className="border border-border rounded-lg p-6 bg-background">
-                <h3 className="text-xl font-semibold mb-3 text-foreground">{section.title}</h3>
-                <div className="prose dark:prose-invert max-w-none">
-                  {section.content.startsWith('Error generating') ? (
-                    <div className="p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md">
-                      <p className="text-sm text-red-800 dark:text-red-200">
-                        {section.content}
-                      </p>
+            {/* For non-signed-in users, only show Executive Summary */}
+            {!user ? (
+              // Find and display only the Executive Summary section
+              (() => {
+                const executiveSummary = findExecutiveSummarySection(businessPlan?.sections);
+                
+                if (executiveSummary) {
+                  return (
+                    <div className="border border-border rounded-lg p-6 bg-background">
+                      <h3 className="text-xl font-semibold mb-3 text-foreground">{executiveSummary.title}</h3>
+                      <div className="prose dark:prose-invert max-w-none">
+                        {executiveSummary.content.startsWith('Error generating') ? (
+                          <div className="p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md">
+                            <p className="text-sm text-red-800 dark:text-red-200">
+                              {executiveSummary.content}
+                            </p>
+                          </div>
+                        ) : (
+                          executiveSummary.content.split('\n\n').map((paragraph, i) => (
+                            <p key={i} className="mb-4 text-foreground/90">{paragraph}</p>
+                          ))
+                        )}
+                      </div>
+                      
+                      {/* Preview message and sign up button */}
+                      <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md">
+                        <p className="text-blue-800 dark:text-blue-200 mb-3">
+                          This is a preview of your Executive Summary. Sign up to view the complete business plan with all sections.
+                        </p>
+                        <div className="flex justify-center">
+                          <Button
+                            onClick={() => router.push('/sign-up?redirectTo=/dashboard/plans')}
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            Sign Up to View Full Plan
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                  ) : (
-                    section.content.split('\n\n').map((paragraph, i) => (
-                      <p key={i} className="mb-4 text-foreground/90">{paragraph}</p>
-                    ))
-                  )}
+                  );
+                } else {
+                  return (
+                    <div className="border border-border rounded-lg p-6 bg-background">
+                      <h3 className="text-xl font-semibold mb-3 text-foreground">Executive Summary</h3>
+                      <div className="p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md">
+                        <p className="text-sm text-red-800 dark:text-red-200">
+                          Error generating Executive Summary. Please try again.
+                        </p>
+                      </div>
+                      
+                      {/* Preview message and sign up button */}
+                      <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md">
+                        <p className="text-blue-800 dark:text-blue-200 mb-3">
+                          Sign up to view the complete business plan with all sections.
+                        </p>
+                        <div className="flex justify-center">
+                          <Button
+                            onClick={() => router.push('/sign-up?redirectTo=/dashboard/plans')}
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            Sign Up to View Full Plan
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+              })()
+            ) : (
+              // For signed-in users, show all sections
+              businessPlan?.sections.map((section, index) => (
+                <div key={index} className="border border-border rounded-lg p-6 bg-background">
+                  <h3 className="text-xl font-semibold mb-3 text-foreground">{section.title}</h3>
+                  <div className="prose dark:prose-invert max-w-none">
+                    {section.content.startsWith('Error generating') ? (
+                      <div className="p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md">
+                        <p className="text-sm text-red-800 dark:text-red-200">
+                          {section.content}
+                        </p>
+                      </div>
+                    ) : isEditing && user ? (
+                      <InlineEditDescription
+                        value={section.content}
+                        onChange={(value) => handleSectionUpdate(index, value)}
+                        className="text-foreground/90"
+                      />
+                    ) : (
+                      section.content.split('\n\n').map((paragraph, i) => (
+                        <p key={i} className="mb-4 text-foreground/90">{paragraph}</p>
+                      ))
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
         
         <div className="flex flex-col items-center gap-4">
-          {!isSaved ? (
+          {!user ? (
+            <div className="flex flex-col items-center gap-4 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md w-full max-w-md">
+              <p className="text-center text-blue-800 dark:text-blue-200">
+                Sign up to save this business plan to your dashboard and access all sections.
+              </p>
+              <Button
+                onClick={() => router.push('/sign-up?redirectTo=/dashboard/plans')}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Sign Up Now
+              </Button>
+            </div>
+          ) : !isSaved ? (
             <Button
-              onClick={handleSaveToDashboard}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
-              disabled={isSaving}
+              onClick={handleSave}
+              className={`bg-purple-600 hover:bg-purple-700 text-white ${isSaving ? 'opacity-50' : ''}`}
             >
               {isSaving ? (
                 <>
@@ -448,7 +763,7 @@ export default function ResultsClient() {
             className="mt-2"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Create Another Business Plan
+            Create New Business Plan
           </Button>
         </div>
       </div>

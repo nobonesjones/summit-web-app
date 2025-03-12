@@ -1,0 +1,19 @@
+🚀 Custom Supabase MCP server running at http://localhost:3100
+🔌 Connected to Supabase at https://pqmrlxuiqaenfhssduik.supabase.co
+📝 Use this in your .cursor/mcp.json:
+
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "node",
+      "args": ["scripts/supabase-mcp-server.js"]
+    }
+  }
+}
+  
+Received request: {"jsonrpc":"2.0","id":1,"method":"schema"}
+Fetching schema information...
+Received request: {"jsonrpc":"2.0","id":1,"method":"query","params":{"sql":"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'business_plans' AND table_schema = 'public';"}}
+Executing query: SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'business_plans' AND table_schema = 'public';
+Received request: {"jsonrpc":"2.0","id":1,"method":"query","params":{"sql":"SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = 'business_plans' AND table_schema = 'public' ORDER BY ordinal_position;"}}
+Executing query: SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = 'business_plans' AND table_schema = 'public' ORDER BY ordinal_position;

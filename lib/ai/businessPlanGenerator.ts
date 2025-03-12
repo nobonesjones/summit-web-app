@@ -23,9 +23,15 @@ export async function generateBusinessPlan(formData: Record<string, string>, res
     // Get the sections for this business category
     const sections = getSectionsForCategory(category);
     
-    // Generate each section of the business plan
-    const businessPlanSections = await Promise.all(
-      sections.map(async (section) => {
+    // Generate each section of the business plan SEQUENTIALLY to avoid rate limits
+    const businessPlanSections = [];
+    
+    for (const section of sections) {
+      try {
+        console.log(`Generating section: ${section.title}`);
+        
+        // No need for delay between API calls with gpt-4o-mini's higher rate limits
+        
         const sectionContent = await generateBusinessPlanSection(
           businessName,
           category,
@@ -35,15 +41,27 @@ export async function generateBusinessPlan(formData: Record<string, string>, res
           researchResults
         );
         
-        return {
+        businessPlanSections.push({
           title: section.title,
           content: sectionContent,
-        };
-      })
-    );
+        });
+      } catch (error) {
+        console.error(`Error generating section ${section.title}:`, error);
+        
+        // Add the section with an error message
+        businessPlanSections.push({
+          title: section.title,
+          content: `Error generating ${section.title}: ${error instanceof Error ? error.message : String(error)}`,
+        });
+        
+        // No need for longer delay after errors with gpt-4o-mini's higher rate limits
+      }
+    }
     
     return {
       title: `${businessName} Business Plan`,
+      business_idea: formData.businessIdea || '',
+      location: formData.location || '',
       category,
       sections: businessPlanSections,
     };
@@ -64,16 +82,18 @@ function getBaseUrl(): string {
   }
   
   // For server-side rendering, use environment variables if available
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL;
   }
   
-  // Fallback to localhost for development
-  return 'http://localhost:3001';
+  // Fallback to a dynamic port detection approach
+  // This is needed because the server might be running on different ports
+  const port = process.env.PORT || 3000;
+  return `http://localhost:${port}`;
 }
 
 /**
- * Generates a section of the business plan
+ * Generates a section of the business plan with retry logic for rate limiting
  */
 async function generateBusinessPlanSection(
   businessName: string,
@@ -83,9 +103,16 @@ async function generateBusinessPlanSection(
   formData: Record<string, string>,
   researchResults: string
 ): Promise<string> {
-  try {
-    // Create the prompt for generating this section
-    const prompt = `# Business Plan Section Generator for ${businessName} (${category})
+  // Maximum number of retries
+  const maxRetries = 3;
+  let retryCount = 0;
+  let lastError: Error | null = null;
+  
+  // Implement retry logic with exponential backoff
+  while (retryCount < maxRetries) {
+    try {
+      // Create the prompt for generating this section
+      const prompt = `# Business Plan Section Generator for ${businessName} (${category})
 
 Based on the research provided for ${extractBusinessType(formData.businessIdea || '')} in ${formData.location || ''}, generate the following section for my business plan:
 
@@ -107,7 +134,7 @@ For each subsection:
 4. End with an actionable insight or next step
 5. Avoid generic statements that could apply to any business
 
-Format each subsection with its heading in bold, followed by the concise content.
+Format each subsection with its heading in bold, followed by the concise content. Do not use any asterixes (*) in the answer.
 
 Form Data:
 ${Object.entries(formData)
@@ -117,32 +144,62 @@ ${Object.entries(formData)
 Research Results:
 ${researchResults}`;
 
-    // Get the base URL for API calls
-    const baseUrl = getBaseUrl();
-    
-    // Call the OpenAI API to generate the section
-    const response = await fetch(`${baseUrl}/api/ai/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompt,
-        max_tokens: 1500,
-      }),
-    });
+      // Get the base URL for API calls
+      const baseUrl = getBaseUrl();
+      
+      // Call the OpenAI API to generate the section
+      const response = await fetch(`${baseUrl}/api/ai/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt,
+          model: 'gpt-4o-mini',
+          temperature: 0.7,
+          max_tokens: 1500,
+        }),
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to generate section: ${response.status} ${errorText}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        
+        // With gpt-4o-mini's higher rate limits, we only need to retry on general errors
+        retryCount++;
+        lastError = new Error(`Failed to generate section: ${response.status} ${errorText}`);
+        
+        // Simple retry with a short delay
+        const backoffTime = 1000; // 1 second
+        console.log(`Error generating section ${sectionTitle}. Retrying in ${backoffTime/1000} seconds... (Attempt ${retryCount} of ${maxRetries})`);
+        
+        // Wait for the backoff period
+        await new Promise(resolve => setTimeout(resolve, backoffTime));
+        continue;
+      }
+
+      const data = await response.json();
+      return data.content || `Error: No content generated for ${sectionTitle}`;
+    } catch (error) {
+      retryCount++;
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      // If we've reached max retries, throw the last error
+      if (retryCount >= maxRetries) {
+        console.error(`Max retries (${maxRetries}) reached for section ${sectionTitle}`);
+        throw lastError;
+      }
+      
+      // Calculate backoff time: 2^retryCount seconds (1s, 2s, 4s, etc.)
+      const backoffTime = Math.pow(2, retryCount) * 1000;
+      console.log(`Error generating section ${sectionTitle}. Retrying in ${backoffTime/1000} seconds... (Attempt ${retryCount} of ${maxRetries})`);
+      
+      // Wait for the backoff period
+      await new Promise(resolve => setTimeout(resolve, backoffTime));
     }
-
-    const data = await response.json();
-    return data.content || '';
-  } catch (error) {
-    console.error(`Error generating section ${sectionTitle}:`, error);
-    return `Error generating ${sectionTitle}: ${error instanceof Error ? error.message : String(error)}`;
   }
+  
+  // This should never be reached due to the throw in the loop, but TypeScript needs it
+  throw lastError || new Error(`Failed to generate section ${sectionTitle} after ${maxRetries} retries`);
 }
 
 /**

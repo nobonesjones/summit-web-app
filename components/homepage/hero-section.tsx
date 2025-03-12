@@ -3,8 +3,11 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import { motion } from "motion/react";
+import { useAuth } from "@/components/providers/auth-provider";
 
 export default function HeroSection() {
+  const { user, loading } = useAuth();
+
   return (
     <section
       className="relative flex flex-col items-center justify-center py-20"
@@ -50,23 +53,47 @@ export default function HeroSection() {
           Define your plan, track your progress, and turn your vision into a reality.
         </motion.p>
 
-        {/* CTA Button - Only the black button, centered */}
+        {/* CTA Button - Different based on auth status */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="flex justify-center items-center pt-4"
+          className="flex justify-center items-center gap-4 pt-4"
         >
-          <a href="#summit-mini-apps">
-            <Button
-              variant="outline"
-              size="lg"
-              className="rounded-full px-8 h-12 border-2"
-            >
-              Launch Mini Apps
-              <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-            </Button>
-          </a>
+          {!loading && (
+            user ? (
+              <Link href="/dashboard">
+                <Button
+                  size="lg"
+                  className="rounded-full px-8 h-12"
+                >
+                  Go to Dashboard
+                  <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/sign-in">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="rounded-full px-8 h-12 border-2"
+                  >
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/sign-up">
+                  <Button
+                    size="lg"
+                    className="rounded-full px-8 h-12"
+                  >
+                    Get Started
+                    <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </Link>
+              </>
+            )
+          )}
         </motion.div>
       </div>
     </section>

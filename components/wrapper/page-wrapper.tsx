@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from '@/lib/hooks/useAuth';
+import { useAuth } from '@/components/providers/auth-provider';
 import { usePathname } from 'next/navigation';
 import { ReactNode } from 'react';
 import Navbar from './navbar';
@@ -17,7 +17,7 @@ export default function PageWrapper({
   showNavbar = true,
   showFooter = true,
 }: PageWrapperProps) {
-  const { isSignedIn } = useAuth();
+  const { user } = useAuth();
   const pathname = usePathname();
   
   // Determine if we're on a marketing page

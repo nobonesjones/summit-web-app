@@ -29,7 +29,7 @@ export async function generateSuggestions(
     
     // Call the OpenAI API
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: 'You are a helpful business planning assistant. Provide specific, actionable suggestions for business plan questions.' },
         { role: 'user', content: prompt }
@@ -77,7 +77,7 @@ export async function generateBusinessPlan(
     
     // Call the OpenAI API
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: 'You are a professional business plan consultant. Create detailed, actionable business plans based on the provided information.' },
         { role: 'user', content: prompt }

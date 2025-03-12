@@ -1,2 +1,3 @@
 This will be used to track current progress on the app. 
-WOk seems there is an issue since deploying. problems with signing in and signing out...but might have made the sign freeze on dev environment. trouble shooting time. 
+I just updated supabase f db to store the plans correctly. 
+did not test properly yet.
