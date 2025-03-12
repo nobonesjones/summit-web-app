@@ -116,6 +116,19 @@ export default function BusinessPlanView({ id }: { id: string }) {
     
     try {
       setIsSaving(true);
+      
+      // First, fetch all business plans to determine where to redirect after deletion
+      const { data: allPlans, error: fetchError } = await supabase
+        .from("business_plans")
+        .select("id")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+        
+      if (fetchError) {
+        throw new Error(fetchError.message);
+      }
+      
+      // Delete the current business plan
       const { error } = await supabase
         .from("business_plans")
         .delete()
@@ -137,7 +150,28 @@ export default function BusinessPlanView({ id }: { id: string }) {
         description: "Your business plan has been successfully deleted.",
       });
       
-      router.push("/dashboard/business-plans");
+      // Find the next business plan to redirect to
+      if (allPlans && allPlans.length > 1) {
+        // Find the index of the current plan
+        const currentIndex = allPlans.findIndex(plan => plan.id === id);
+        
+        // If there's a next plan, go to it, otherwise go to the previous plan
+        if (currentIndex !== -1) {
+          // Remove the current plan from the array (simulating deletion)
+          const remainingPlans = allPlans.filter(plan => plan.id !== id);
+          
+          if (remainingPlans.length > 0) {
+            // If there's a next plan, use it, otherwise use the first plan
+            const nextIndex = currentIndex < remainingPlans.length ? currentIndex : 0;
+            const nextPlan = remainingPlans[nextIndex];
+            router.push(`/dashboard/business-plans/${nextPlan.id}`);
+            return;
+          }
+        }
+      }
+      
+      // If no plans remain or couldn't find a next plan, redirect to dashboard home
+      router.push("/dashboard/home");
     } catch (error) {
       console.error("Error deleting business plan:", error);
       toast({
