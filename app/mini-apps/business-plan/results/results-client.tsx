@@ -483,6 +483,16 @@ export default function ResultsClient() {
         </Button>
         
         <div className="flex space-x-2">
+          <Button
+            onClick={handleCreateNew}
+            variant="outline"
+            size="sm"
+            className="flex items-center"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Create New Business Plan
+          </Button>
+          
           {user && (
             <Button
               variant={isEditing ? "default" : "outline"}
@@ -551,64 +561,13 @@ export default function ResultsClient() {
           </div>
           <h1 className="text-3xl font-bold mb-2 text-foreground">Your Business Plan is Ready!</h1>
           <p className="text-foreground/70">
-            Your comprehensive business plan has been generated based on market research and your inputs.
+            Your Summit business plan has been generated.
           </p>
-          {businessPlan?.category && (
-            <div className="mt-2">
-              <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900 px-3 py-1 text-sm font-medium text-blue-800 dark:text-blue-300">
-                {businessPlan.category}
-              </span>
-            </div>
-          )}
         </div>
         
         <div className="mb-8">
           <div className="mb-6">
-            {isEditing && user ? (
-              <InlineEditTitle 
-                value={businessPlan?.title || ''} 
-                onChange={(value) => handleFieldUpdate('title', value)}
-                className="text-3xl font-bold mb-2"
-              />
-            ) : (
-              <h1 className="text-3xl font-bold mb-2 text-foreground">{businessPlan?.title}</h1>
-            )}
-            
-            <div className="flex flex-wrap gap-2 mb-4">
-              <div className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 px-3 py-1 rounded-full text-sm">
-                {isEditing && user ? (
-                  <InlineEdit
-                    value={businessPlan?.category || ''}
-                    onChange={(value) => handleFieldUpdate('category', value)}
-                  />
-                ) : (
-                  businessPlan?.category
-                )}
-              </div>
-              <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm">
-                {isEditing && user ? (
-                  <InlineEdit
-                    value={businessPlan?.location || ''}
-                    onChange={(value) => handleFieldUpdate('location', value)}
-                  />
-                ) : (
-                  businessPlan?.location
-                )}
-              </div>
-            </div>
-            
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold mb-2 text-foreground">Business Idea</h2>
-              {isEditing && user ? (
-                <InlineEditDescription
-                  value={businessPlan?.business_idea || ''}
-                  onChange={(value) => handleFieldUpdate('business_idea', value)}
-                  className="text-foreground/80"
-                />
-              ) : (
-                <p className="text-foreground/80">{businessPlan?.business_idea}</p>
-              )}
-            </div>
+            {/* Removing the category and location tags */}
           </div>
           
           <div className="space-y-6">
@@ -756,15 +715,6 @@ export default function ResultsClient() {
               </Button>
             </div>
           )}
-          
-          <Button
-            onClick={handleCreateNew}
-            variant="outline"
-            className="mt-2"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Create New Business Plan
-          </Button>
         </div>
       </div>
     </div>
