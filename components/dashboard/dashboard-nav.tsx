@@ -78,6 +78,19 @@ export function DashboardNav({ items, variant = "vertical", className }: Dashboa
     };
 
     fetchBusinessPlans();
+    
+    // Add event listener for business plan changes
+    const handleBusinessPlanChange = () => {
+      console.log("Business plans changed, refreshing list");
+      fetchBusinessPlans();
+    };
+    
+    window.addEventListener('business-plans-changed', handleBusinessPlanChange);
+    
+    // Clean up the event listener when component unmounts
+    return () => {
+      window.removeEventListener('business-plans-changed', handleBusinessPlanChange);
+    };
   }, [user, supabase]);
 
   // Check if the current path is a business plan detail page

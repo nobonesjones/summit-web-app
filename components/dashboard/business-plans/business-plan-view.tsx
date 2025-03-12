@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Icons } from "@/components/Icons";
 import { formatDate } from "@/lib/utils";
 import Link from "next/link";
-import { ArrowLeft, Printer, Download } from "lucide-react";
+import { ArrowLeft, Printer, Download, Trash2 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { InlineEditTitle } from "@/components/ui/inline-edit";
 
@@ -107,6 +107,49 @@ export default function BusinessPlanView({ id }: { id: string }) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!user) return;
+    
+    if (!confirm("Are you sure you want to delete this business plan? This action cannot be undone.")) {
+      return;
+    }
+    
+    try {
+      setIsSaving(true);
+      const { error } = await supabase
+        .from("business_plans")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", user.id);
+        
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      // Dispatch a custom event to notify the navigation component to refresh
+      const refreshEvent = new CustomEvent('business-plans-changed', {
+        detail: { action: 'delete', planId: id }
+      });
+      window.dispatchEvent(refreshEvent);
+      
+      toast({
+        title: "Business plan deleted",
+        description: "Your business plan has been successfully deleted.",
+      });
+      
+      router.push("/dashboard/business-plans");
+    } catch (error) {
+      console.error("Error deleting business plan:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete business plan. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Show loading state
   if (isLoading || authLoading) {
     return (
@@ -191,6 +234,16 @@ export default function BusinessPlanView({ id }: { id: string }) {
           <Button variant="outline" size="sm" className="gap-1">
             <Download className="h-4 w-4" />
             Export
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-1 text-destructive hover:bg-destructive/10"
+            onClick={handleDelete}
+            disabled={isSaving}
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete
           </Button>
         </div>
       </div>
