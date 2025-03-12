@@ -21,6 +21,7 @@ export default function ResultsClient() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [businessPlan, setBusinessPlan] = useState<BusinessPlan | null>(null);
+  const [savedPlanId, setSavedPlanId] = useState<string | null>(null);
   const [researchResults, setResearchResults] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [apiErrors, setApiErrors] = useState<Record<string, string>>({});
@@ -216,6 +217,16 @@ export default function ResultsClient() {
             }
             
             console.log('Successfully saved business plan with ID:', savedPlanId);
+            
+            // Store the saved plan ID
+            setSavedPlanId(savedPlanId);
+            
+            // Update the business plan with the ID
+            setBusinessPlan(prevPlan => {
+              if (!prevPlan) return null;
+              return { ...prevPlan, id: savedPlanId };
+            });
+            
             setIsSaved(true);
             toast({
               title: "Business plan saved",
@@ -375,6 +386,19 @@ export default function ResultsClient() {
       // Use the enhanced business plan service to save
       const savedPlanId = await businessPlanService.saveBusinessPlan(businessPlan);
       
+      console.log('Received saved plan ID:', savedPlanId);
+      
+      // Store the saved plan ID
+      setSavedPlanId(savedPlanId);
+      
+      // Update the business plan with the ID
+      setBusinessPlan(prevPlan => {
+        if (!prevPlan) return null;
+        const updatedPlan = { ...prevPlan, id: savedPlanId };
+        console.log('Updated business plan with ID:', updatedPlan);
+        return updatedPlan;
+      });
+      
       // Mark as saved
       setIsSaved(true);
       
@@ -417,13 +441,61 @@ export default function ResultsClient() {
   };
 
   const handleViewInDashboard = () => {
-    router.push('/dashboard/plans');
+    // Log the business plan object and saved ID
+    console.log('Business plan object:', businessPlan);
+    console.log('Saved plan ID:', savedPlanId);
+    
+    // Use the saved plan ID if available, otherwise try to get it from the business plan
+    const planId = savedPlanId || (businessPlan && businessPlan.id);
+    
+    if (planId) {
+      console.log('Using business plan ID for navigation:', planId);
+      // Navigate to the specific business plan page
+      router.push(`/dashboard/business-plans/${planId}`);
+    } else {
+      console.log('No business plan ID found, navigating to business plans list');
+      // Fallback to the business plans list
+      router.push('/dashboard/business-plans');
+    }
   };
 
   // Add a function to find the Executive Summary section
   const findExecutiveSummarySection = (sections: BusinessPlanSection[] | undefined): BusinessPlanSection | undefined => {
     if (!sections) return undefined;
     return sections.find(section => section.title === 'Executive Summary');
+  };
+
+  // Format business plan content to use proper headings
+  const formatBusinessPlanContent = (content: string): React.ReactNode => {
+    if (!content || content.startsWith('Error generating')) {
+      return <p className="text-foreground/90">{content}</p>;
+    }
+
+    // Split content into paragraphs
+    const paragraphs = content.split('\n\n');
+    
+    return paragraphs.map((paragraph, index) => {
+      // Check if paragraph is a section heading (starts with ** or ##)
+      if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
+        // Extract heading text without asterisks
+        const headingText = paragraph.slice(2, -2).trim();
+        return (
+          <h4 key={index} className="text-lg font-bold mt-6 mb-3 text-foreground">
+            {headingText}
+          </h4>
+        );
+      } else if (paragraph.startsWith('## ')) {
+        // Remove markdown heading syntax
+        return null; // Skip these headings as they're duplicates
+      } else {
+        // Regular paragraph
+        return (
+          <p key={index} className="mb-4 text-foreground/90">
+            {paragraph}
+          </p>
+        );
+      }
+    });
   };
 
   if (isAuthLoading || isLoading) {
@@ -589,9 +661,7 @@ export default function ResultsClient() {
                             </p>
                           </div>
                         ) : (
-                          executiveSummary.content.split('\n\n').map((paragraph, i) => (
-                            <p key={i} className="mb-4 text-foreground/90">{paragraph}</p>
-                          ))
+                          formatBusinessPlanContent(executiveSummary.content)
                         )}
                       </div>
                       
@@ -658,9 +728,7 @@ export default function ResultsClient() {
                         className="text-foreground/90"
                       />
                     ) : (
-                      section.content.split('\n\n').map((paragraph, i) => (
-                        <p key={i} className="mb-4 text-foreground/90">{paragraph}</p>
-                      ))
+                      formatBusinessPlanContent(section.content)
                     )}
                   </div>
                 </div>
