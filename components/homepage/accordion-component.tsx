@@ -10,20 +10,20 @@ import { motion } from "motion/react"
 
 const faqs = [
     {
-        question: "Do I get access to this landing page in the starter kit?",
-        answer: "Yes, this page isn't even a real landing page more so a template for you to build on."
+        question: "Do I get access to all mini apps with my subscription?",
+        answer: "Yes, all Summit tools are included in your subscription. Each app is designed to work together as part of your complete business growth system."
     },
     {
-        question: "Is the starter kit regularly updated?",
-        answer: "Yes, we continuously update the starter kit with the latest features, security patches, and best practices to ensure you're always working with cutting-edge technology."
+        question: "Is Summit regularly updated?",
+        answer: "Absolutely. We constantly improve our tools based on user feedback and new business strategies. Your Summit subscription always gives you access to the latest versions."
     },
     {
-        question: "Can I use this for commercial projects?",
-        answer: "Absolutely! The starter kit comes with a commercial license, allowing you to use it in both personal and commercial projects without any restrictions."
+        question: "Can I use Summit for my commercial business?",
+        answer: "100%. Summit is built specifically for real businesses to achieve real results. Use it for any commercial project, from startups to established companies."
     },
     {
         question: "What kind of support do you provide?",
-        answer: "We offer comprehensive support through our Discord community, where you can get help from both our team and other developers using the starter kit."
+        answer: "Direct access to business experts who understand your challenges. Get help through live chat, priority email, and comprehensive documentation that cuts through the fluff."
     }
 ]
 
@@ -45,7 +45,7 @@ export function AccordionComponent() {
                         Frequently Asked Questions
                     </h2>
                     <p className="text-gray-600 dark:text-gray-300 mt-4 max-w-2xl mx-auto">
-                        Everything you need to know about the Next.js Starter Kit. Can&apos;t find the answer you&apos;re looking for? Reach out to our team.
+                        Everything you need to know about Summit's business tools. Can't find what you're looking for? Reach out to our team.
                     </p>
                 </div>
 

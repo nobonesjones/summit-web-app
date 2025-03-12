@@ -92,7 +92,16 @@ const config: Config = {
           from: { transform: "translateX(0)" },
           to: { transform: "translateX(calc(-100% - 4rem))" },
         },
-
+        "star-movement-top": {
+          "0%": { transform: "translateX(0)" },
+          "50%": { transform: "translateX(75%)" },
+          "100%": { transform: "translateX(0)" },
+        },
+        "star-movement-bottom": {
+          "0%": { transform: "translateX(0)" },
+          "50%": { transform: "translateX(-75%)" },
+          "100%": { transform: "translateX(0)" },
+        },
         orbit: {
           "0%": {
             transform:
@@ -141,6 +150,8 @@ const config: Config = {
       },
       animation: {
         "logo-cloud": "logo-cloud 30s linear infinite", // Adjust duration and timing as needed for your design.
+        "star-movement-top": "star-movement-top 6s ease-in-out infinite",
+        "star-movement-bottom": "star-movement-bottom 6s ease-in-out infinite",
         orbit: "orbit calc(var(--duration)*1s) linear infinite",
         gradient: "gradient 8s linear infinite",
         shimmer: "shimmer 8s infinite",

@@ -38,7 +38,7 @@ export default function Pricing() {
     {
       name: "Pro",
       description: "Advanced tools for serious entrepreneurs",
-      price: annual ? "$29" : "$39",
+      price: annual ? "$69" : "$9",
       duration: annual ? "/year" : "/month",
       features: [
         "All Free features",
@@ -52,24 +52,6 @@ export default function Pricing() {
       cta: "Upgrade Now",
       href: isSignedIn ? "/dashboard/settings" : "/sign-up",
       popular: true,
-    },
-    {
-      name: "Enterprise",
-      description: "Custom solutions for teams and organizations",
-      price: "Custom",
-      duration: "pricing",
-      features: [
-        "All Pro features",
-        "Dedicated account manager",
-        "Custom AI training",
-        "API access",
-        "SSO authentication",
-        "Advanced analytics",
-        "Custom integrations",
-      ],
-      cta: "Contact Sales",
-      href: "/contact",
-      popular: false,
     },
   ];
 
@@ -102,7 +84,7 @@ export default function Pricing() {
             </Button>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-6 pt-12 md:grid-cols-3 md:gap-8">
+        <div className="grid grid-cols-1 gap-6 pt-12 md:grid-cols-2 md:gap-8">
           {plans.map((plan) => (
             <Card
               key={plan.name}
